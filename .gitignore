@@ -1,0 +1,40 @@
+# dependências e builds
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# segredos e ambientes locais (versionar apenas .env.example)
+.env
+.env.*
+!.env.example
+.vercel/
+
+# dados sensíveis: exports, dumps, backups e documentos internos
+*.dump
+*.backup
+*.bak
+*.sql.gz
+dumps/
+exports/
+backups/
+*.pdf
+*.xlsx
+*.csv
+!tests/fixtures/**/*.csv
+
+# ferramentas locais
+.claude/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+npm-debug.log*
+playwright-report/
+test-results/
+supabase/.temp/
+supabase/.branches/

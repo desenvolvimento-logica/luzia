@@ -1,0 +1,28 @@
+# Critérios de aceite — estado das evidências
+
+Estado em 19/10/2026. Três níveis, nunca misturados:
+
+- **Implementado** — o código existe neste repositório.
+- **Simulação** — teste automatizado local: PGlite no lugar do Postgres do Supabase (com *shim* de `auth.*` e papéis), dublês no lugar de Supabase Auth/Microsoft/PostgREST, aplicação simulada no lugar das apps Lovable.
+- **Real** — validado contra Supabase, Microsoft Entra ou aplicação integrada real. **Nenhum critério está nesse nível ainda.**
+
+Comandos: `npm test` (Vitest: banco + unidade), `npm run test:e2e` (Chrome real, origens locais), `npm run verify` (tudo + build + bundle).
+
+| ID | Implementado | Simulação (onde) | Real — pendente de |
+|---|---|---|---|
+| AC-01 Login corporativo; externa, cancelamento, callback inválido | Botão OAuth `azure`; callback com `resolveCallback`; `luzia_provision_me()` valida provedor + tenant em toda entrada e encerra a sessão se negar; `next` restrito a caminhos internos | `tests/unit/auth-callback.test.ts`; `tests/db/provisioning.test.ts` (outro tenant, conta e-mail/senha, sem tenant configurado); fumaça HTTP do build (cancelado, sem code, code inválido, `next` externo) | X-03 (tid e formato de `identity_data`), X-04 (app registration, redirect de staging). **O caminho `custom_claims.tid` é suposição.** |
+| AC-02 Conta nova com perfil mínimo | `usuario`, sem admin, “Não atribuído”, sem nenhuma app; vínculo por identidade; e-mail só concilia cadastro sem identidade | `tests/db/provisioning.test.ts` | X-01 |
+| AC-03 Catálogo por departamento; URL direta e servidor negam | RLS `luzia_apps_select` + `private.can_open_app`; página `/aplicacoes/[id]` autoriza antes do iframe; ação de entrega revalida | `tests/db/authorization.test.ts` (cada perfil × cada app, comparado com a matriz TS) | X-01 (via PostgREST com JWT real) |
+| AC-04 Inativa e desativado não recebem sessão | `access_status`; `can_open_app` exige app ativa; `authorizeSessionDelivery` antes de cada entrega | `tests/db/authorization.test.ts`, `tests/db/access-and-audit.test.ts`, `tests/unit/sso-bridge.test.ts`, `tests/e2e/sso-bridge.spec.ts` (autorização revogada) | X-01, X-05 |
+| AC-05 Matriz em listagens, agregados, endpoints e banco | `private.visible_user_ids()` única; RLS de `users`/`access_log`; RPCs de relatório `security invoker`; rotas exigem `relatorios` | `tests/db/authorization.test.ts`, `tests/db/reports.test.ts` | Endpoints Next com sessão real (X-01) |
+| AC-06 Só admin modifica; não se autopromove | RLS de escrita `is_admin` ativo; Server Actions com `requireAction("admin")` | `tests/db/authorization.test.ts` | X-01 |
+| AC-07 Origem/janela incorreta ignorada; sem curinga | `src/lib/sso/bridge.ts` (origem + `event.source` + formato; `targetOrigin` validado, `*` recusado) | `tests/unit/sso-bridge.test.ts`; **navegador real** em `tests/e2e/sso-bridge.spec.ts` (3 origens locais, app simulada) | Aplicação real (X-05) |
+| AC-08 App de referência abre sem pedir senha | Contrato legado preservado, sem mensagens novas | Apenas app simulada (`tests/fixtures/mock-app`) | **Pendente**: X-01 + X-05 em staging |
+| AC-09 Abertura idempotente | `open_id` único + `luzia_register_open()`; `openId` gerado por renderização do servidor, registrado no cliente | `tests/db/access-and-audit.test.ts` | X-01 |
+| AC-10 >500 acessos; totais do período inteiro | `report_access_metrics` agrega no banco | `tests/db/reports.test.ts` (1.504 acessos sintéticos × consulta de referência) | Volume real e desempenho (X-01/X-02) |
+| AC-11 Filtros, paginação, limites, fuso | Limites de dia em `America/Sao_Paulo` no banco; 25 padrão / 100 máx.; período ≤ 367 dias | `tests/db/reports.test.ts` (bordas 02:59:59Z/03:00Z), `tests/unit/time-and-forms.test.ts` | Versão real do Postgres/tzdata |
+| AC-12 Atividades no escopo; indisponível ≠ vazio | Escopo pelo banco (`report_scope_users`) → service role só sobre esses e-mails; estados `ok`/`vazio`/`indisponivel`/`nao_suportado` | `tests/unit/activities.test.ts` (dublê do cliente) | **Fisco Check e Tributário em “não suportado” até X-06**; e-mail com maiúsculas na app não concilia (limitação testada) |
+| AC-13 Auditoria atômica; última conta admin | Gatilhos `AFTER` na mesma transação; gatilho com `pg_advisory_xact_lock` | `tests/db/access-and-audit.test.ts` | **Concorrência real** (PGlite tem conexão única): rodar duas sessões simultâneas no Postgres isolado (X-01) |
+| AC-14 Celular/desktop, teclado, foco, rótulos, contraste | Layout responsivo, rótulos, `:focus-visible`, “pular para o conteúdo”, temas por tokens | `tests/unit/contrast.test.ts` (WCAG nos dois temas); cores do gráfico validadas | Revisão manual em celular/desktop e leitor de tela com dados (precisa de X-01 para telas autenticadas) |
+| AC-15 Build, lint, tipos, testes; segredo fora do bundle | `scripts/check-bundle-secrets.mjs` | `npm run verify` local; build com valor-canário sintético; controle negativo confirmou que o scanner detecta valores inlinados | CI/Vercel (não configurados) |
+| AC-16 Migrations ensaiadas com reversão | Migração incremental, reversão que preserva dados, corte separado, inventário somente leitura | `tests/db/migration-rehearsal.test.ts` sobre o **legado hipotético** | Cópia isolada do banco real (X-01, X-02, X-08) |
