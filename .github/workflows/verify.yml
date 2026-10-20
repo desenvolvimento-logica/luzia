@@ -18,9 +18,11 @@ jobs:
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
-      # Valor-canário SINTÉTICO: o build o recebe e check:bundle prova que ele não chega ao navegador.
+      # Valor-canário SINTÉTICO nos dois nomes de variável usados ao longo do projeto: o build o recebe e
+      # check:bundle prova que ele não chega ao navegador.
       # Não é segredo e nunca deve ser trocado pela chave real.
       SUPABASE_SERVICE_ROLE_KEY: luzia-canario-nao-e-segredo
+      SUPABASE_SECRET_KEY: luzia-canario-nao-e-segredo
       # Testes de navegador usam o Google Chrome já instalado no runner (channel: "chrome").
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
     steps:
