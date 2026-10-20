@@ -1,13 +1,21 @@
 // Interações acessíveis em navegador real sobre a pré-visualização (dados sintéticos).
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+/** Abre a página e espera a hidratação (no CI o servidor de desenvolvimento compila sob demanda). */
+async function open(page: Page, url: string) {
+  await page.goto(url);
+  await page.waitForLoadState("networkidle");
+}
 
 test("menu mobile: abre como diálogo, Esc fecha e devolve o foco ao botão", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/dev/preview/catalogo-admin");
+  await open(page, "/dev/preview/catalogo-admin");
   const opener = page.getByRole("button", { name: "Abrir menu" });
-  await opener.click();
   const dialog = page.getByRole("dialog", { name: "Menu" });
-  await expect(dialog).toBeVisible();
+  await expect(async () => {
+    await opener.click();
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
   await expect(dialog.getByRole("link", { name: "Gerenciar aplicações" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
@@ -16,10 +24,12 @@ test("menu mobile: abre como diálogo, Esc fecha e devolve o foco ao botão", as
 
 test("menu lateral: recolhe para 64 px e mantém nomes acessíveis", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/dev/preview/catalogo-admin");
+  await open(page, "/dev/preview/catalogo-admin");
   const aside = page.getByRole("complementary", { name: "Menu principal" });
-  await page.getByRole("button", { name: "Recolher menu" }).click();
-  await expect.poll(async () => (await aside.boundingBox())?.width).toBe(64);
+  await expect(async () => {
+    await page.getByRole("button", { name: "Recolher menu" }).click();
+    await expect.poll(async () => (await aside.boundingBox())?.width, { timeout: 1_000 }).toBe(64);
+  }).toPass({ timeout: 30_000 });
   await expect(aside.getByRole("link", { name: "Relatórios" })).toBeVisible();
   await page.getByRole("button", { name: "Expandir menu" }).click();
   await expect.poll(async () => (await aside.boundingBox())?.width).toBe(224);
@@ -27,7 +37,7 @@ test("menu lateral: recolhe para 64 px e mantém nomes acessíveis", async ({ pa
 
 test("painel de edição: foco no Nome, Esc pede confirmação quando há alteração", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/dev/preview/admin-aplicacao-editar");
+  await open(page, "/dev/preview/admin-aplicacao-editar");
   const drawer = page.getByRole("dialog", { name: "Editar aplicação" });
   await expect(drawer).toBeVisible();
   const name = drawer.getByLabel("Nome");
@@ -51,7 +61,7 @@ test("painel de edição: foco no Nome, Esc pede confirmação quando há altera
 
 test("gráfico: setas do teclado percorrem os dias", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/dev/preview/relatorios");
+  await open(page, "/dev/preview/relatorios");
   const chart = page.getByRole("img", { name: /Aberturas por dia/ });
   await chart.focus();
   await page.keyboard.press("Home");
