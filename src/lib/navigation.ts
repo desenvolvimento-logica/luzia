@@ -24,7 +24,6 @@ export interface Crumb {
 export function navGroups(p: { canSeeReports: boolean; isAdmin: boolean }): NavGroup[] {
   const main: NavItem[] = [{ href: "/", label: "Aplicações", icon: "apps", alsoActive: ["/aplicacoes/"] }];
   if (p.canSeeReports) main.push({ href: "/relatorios", label: "Relatórios", icon: "reports" });
-  main.push({ href: "/novidades", label: "Novidades", icon: "news" });
   const groups: NavGroup[] = [{ items: main }];
   if (p.isAdmin) {
     groups.push({

@@ -83,3 +83,30 @@ test("aplicação aberta: iframe ocupa toda a área abaixo da barra superior", a
   await expect(page.getByRole("link", { name: "Voltar ao catálogo" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Recarregar aplicação" })).toBeVisible();
 });
+
+test("sino: painel flutuante de novidades; Esc fecha e devolve o foco; Novidades fora do menu", async ({ page }) => {
+  for (const [w, h, device] of [[1440, 1000, "desktop"], [390, 844, "mobile"]] as const) {
+    await page.setViewportSize({ width: w, height: h });
+    await open(page, "/dev/preview/catalogo");
+    const bell = page.getByRole("button", { name: /^Novidades/ });
+    const panel = page.getByRole("region", { name: "Novidades do Luz.IA" });
+    await expect(async () => {
+      await bell.click();
+      await expect(panel).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 30_000 });
+    await expect(bell).toHaveAttribute("aria-expanded", "true");
+    await expect(panel.getByRole("heading", { name: "As novidades agora ficam no sininho" })).toBeVisible();
+    await expect(panel.getByRole("link", { name: "Ver todas as novidades" })).toBeVisible();
+    await page.screenshot({ path: `test-results/visual/sino-${device}.png` });
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(bell).toBeFocused();
+  }
+  // Clique fora fecha.
+  await page.getByRole("button", { name: /^Novidades/ }).click();
+  await page.mouse.click(195, 830);
+  await expect(page.getByRole("region", { name: "Novidades do Luz.IA" })).toBeHidden();
+  // Novidades não está mais no menu lateral.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.getByRole("complementary", { name: "Menu principal" }).getByRole("link", { name: "Novidades" })).toHaveCount(0);
+});

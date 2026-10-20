@@ -10,8 +10,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div className="flex flex-col gap-6">
       {user.adminReadOnly ? (
         <Notice tone="warning">
-          <strong>Transição em andamento:</strong> os cadastros ainda são mantidos no hub antigo e copiados para cá. Esta área
-          está em modo somente leitura até o corte.
+          <strong>Transição em andamento:</strong> colaboradores, departamentos e aplicações ainda são mantidos no hub antigo e
+          copiados para cá, por isso ficam somente para consulta até o corte. As novidades podem ser publicadas normalmente.
         </Notice>
       ) : null}
       <div>{children}</div>
