@@ -1,5 +1,5 @@
 import "server-only";
-import type { ReportMetrics, ReportPageRow } from "@/lib/supabase/database.types";
+import type { ReportMetrics, ReportPageRow, ReportSort, SortDir } from "@/lib/supabase/database.types";
 import type { HubSupabase } from "@/lib/supabase/server";
 
 export interface ReportFilters {
@@ -17,11 +17,17 @@ export interface AccessReport {
 }
 
 /** Listagem e agregados usam os MESMOS filtros e o mesmo escopo, calculados no banco sobre todo o período. */
-export async function loadAccessReport(supabase: HubSupabase, f: ReportFilters, page: number, pageSize: number): Promise<AccessReport> {
+export async function loadAccessReport(
+  supabase: HubSupabase,
+  f: ReportFilters,
+  page: number,
+  pageSize: number,
+  order: { sort: ReportSort; dir: SortDir } = { sort: "opened_at", dir: "desc" },
+): Promise<AccessReport> {
   const args = { p_from: f.from, p_to: f.to, p_application_id: f.appId, p_collaborator_id: f.userId, p_department_id: f.dptoId };
   const [metrics, list] = await Promise.all([
     supabase.rpc("luzia_report_access_metrics", args),
-    supabase.rpc("luzia_report_access_page", { ...args, p_limit: pageSize, p_offset: (page - 1) * pageSize }),
+    supabase.rpc("luzia_report_access_page", { ...args, p_limit: pageSize, p_offset: (page - 1) * pageSize, p_sort: order.sort, p_dir: order.dir }),
   ]);
   if (metrics.error || list.error) throw new Error("Falha ao consultar relatório de acessos");
   const rows = list.data ?? [];

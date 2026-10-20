@@ -31,3 +31,8 @@ export function utcToZonedLocal(iso: string, timeZone = HUB_TZ): string {
   const shifted = new Date(d.getTime() + offsetMinutes(d, timeZone) * 60_000);
   return shifted.toISOString().slice(0, 16);
 }
+
+/** Ano corrente em São Paulo (rodapés). */
+export function currentYear(now = new Date()): number {
+  return Number(new Intl.DateTimeFormat("en-CA", { timeZone: HUB_TZ, year: "numeric" }).format(now));
+}

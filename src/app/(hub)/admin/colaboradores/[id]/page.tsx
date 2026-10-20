@@ -22,9 +22,9 @@ export default async function CollaboratorPage({ params }: PageProps<"/admin/col
   return (
     <>
       <PageHeader title={person.name} description={person.email} actions={<ButtonLink href="/admin/colaboradores">Voltar à lista</ButtonLink>} />
-      <div className="max-w-xl">
+      <div className="max-w-xl rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6">
         {me.adminReadOnly ? (
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-lg border border-border bg-surface p-4 text-sm">
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted">Departamento</dt>
             <dd>{department?.name ?? "—"}</dd>
             <dt className="text-muted">Cargo</dt>

@@ -1,32 +1,29 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Notice } from "@/components/ui/states";
+import { CatalogView } from "@/features/catalog/catalog-view";
 import { listCatalog } from "@/features/catalog/queries";
 import { requirePage } from "@/lib/auth/session";
-import { CatalogGrid } from "./catalog-grid";
 
 export const metadata: Metadata = { title: "Aplicações" };
 
 export default async function CatalogPage() {
   const { user, supabase } = await requirePage();
-  const apps = await listCatalog(supabase);
-  const pending = user.dptoKind !== "normal";
+  const [apps, { data: news }] = await Promise.all([
+    listCatalog(supabase),
+    supabase
+      .from("luzia_news")
+      .select("id, title, body, published_at")
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false })
+      .limit(2),
+  ]);
 
   return (
-    <>
-      <PageHeader
-        title={`Olá, ${user.name.split(" ")[0]}`}
-        description={user.dptoName ? `Departamento: ${user.dptoName}` : "Departamento não definido"}
-      />
-      {pending && !user.isAdmin ? (
-        <div className="mb-6">
-          <Notice tone="warning">
-            Seu cadastro ainda não tem departamento definido, por isso nenhuma aplicação foi liberada. Procure a administração do
-            Luz.IA para concluir o cadastro.
-          </Notice>
-        </div>
-      ) : null}
-      <CatalogGrid apps={apps} />
-    </>
+    <CatalogView
+      departmentName={user.dptoName}
+      pendingDepartment={user.dptoKind !== "normal"}
+      isAdmin={user.isAdmin}
+      apps={apps}
+      news={(news ?? []).map((n) => ({ id: n.id, title: n.title, body: n.body, publishedAt: n.published_at }))}
+    />
   );
 }

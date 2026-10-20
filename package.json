@@ -16,9 +16,11 @@
     "test:watch": "vitest",
     "check:bundle": "node scripts/check-bundle-secrets.mjs",
     "mock-app": "node tests/fixtures/mock-app/server.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run test:e2e && npm run build && npm run check:bundle",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run test:e2e && npm run test:ui && npm run build && npm run check:bundle",
     "test:e2e": "playwright test",
-    "typegen": "next typegen"
+    "typegen": "next typegen",
+    "screens": "playwright test -c playwright.visual.config.ts tests/visual/screens.spec.ts",
+    "test:ui": "playwright test -c playwright.visual.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

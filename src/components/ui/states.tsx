@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-surface p-8 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-border bg-surface p-8 text-center">
       <Inbox aria-hidden className="size-8 text-muted" />
       <p className="font-medium">{title}</p>
       {children ? <div className="text-sm text-muted">{children}</div> : null}
@@ -13,7 +13,7 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 
 export function ErrorState({ title = "Algo deu errado", children, action }: { title?: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-danger bg-danger-bg p-8 text-center">
+    <div role="alert" className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] border border-danger bg-danger-bg p-8 text-center">
       <AlertTriangle aria-hidden className="size-8 text-danger" />
       <p className="font-medium">{title}</p>
       {children ? <div className="text-sm">{children}</div> : null}

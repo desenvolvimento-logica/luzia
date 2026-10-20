@@ -35,6 +35,7 @@ end
 $$;
 
 drop function if exists public.luzia_report_access_metrics(date, date, uuid, bigint, bigint);
+drop function if exists public.luzia_report_access_page(date, date, uuid, bigint, bigint, int, int, text, text);
 drop function if exists public.luzia_report_access_page(date, date, uuid, bigint, bigint, int, int);
 drop function if exists public.luzia_report_application_names();
 drop function if exists public.luzia_report_scope();

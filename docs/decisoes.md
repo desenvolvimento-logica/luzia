@@ -82,6 +82,13 @@ Executado pelo usuário no SQL Editor (`supabase/inventory/inventario-somente-le
 | D-23 | Estado de acesso (`access_status`), aplicações, audiências, novidades e eventos existem só em `luzia_`. | O legado não tem onde guardá-los; o GC controla o próprio acesso por papéis. |
 | D-24 | Aplicações, novidades e auditoria com id `uuid` (eventos com `bigint identity`); departamentos e colaboradores com `bigint` igual ao legado; `legacy_app_id` guarda a origem da aplicação importada. | Convenção do LG/GC para entidades novas; compatibilidade de IDs onde outros sistemas referenciam. |
 | D-25 | `signOut({ scope: "local" })` no hub. | Encerra a sessão do hub (a mesma entregue às apps em iframe) sem derrubar as sessões do usuário no LG/GC. |
+| D-26 | Visual v2 a partir de `mockups/GUIA-VISUAL-CLAUDE-CODE.md`, com ajustes de contraste calculados: contorno de campos `--control-border` (≥3:1) em vez da borda decorativa `#E5E7EB`; linha/barras de gráfico em `--chart` (dourado escuro validado) em vez do amarelo `#F4C542` (1,6:1 sobre branco). | Guia + WCAG 1.4.11; o amarelo segue nos botões (9,1:1 com texto escuro). |
+| D-27 | Inter via `next/font/google`, baixada no build e servida pelo próprio site. | Nenhuma requisição ao Google no navegador; CSP `font-src 'self'` mantida. |
+| D-28 | Sino de Novidades mantido (decisão do dono do produto, 20/10/2026) como atalho; o ponto indica publicação nos últimos 7 dias, não "não lida". | Spec 5: sem controle de leitura individual. |
+| D-29 | Selo do card do catálogo mostra o departamento da própria pessoa. | Decisão do dono do produto (20/10/2026). |
+| D-30 | Relatórios v2 (`20261020120000_luzia_reports_v2.sql`): indicador "Aplicações acessadas" calculado no banco e ordenação real do histórico (colaborador, departamento, aplicação, data). | Decisões do dono do produto; totais sobre todo o período (spec 6). Compatível com o frontend anterior. |
+| D-31 | Painéis (menu mobile, edição de aplicação) sobre `<dialog>` nativo: foco contido, Esc, fundo inerte; aviso antes de descartar. Formulários do painel enviados em *transition* para o React não limpar campos quando o servidor recusa. | Guia (painel 440–480 px, rodapé fixo) + acessibilidade. |
+| D-32 | Pré-visualização de interface em `/dev/preview/<tela>` com dados sintéticos, só com `LUZIA_UI_PREVIEW=true` (nunca definido na Vercel; sem sessão nem banco). Capturas Playwright 1440×1000 e 390×844 nos dois temas falham com rolagem horizontal ou erro de console; testes de interação (teclado/foco). | Comparação com as referências e prevenção de regressões visuais (pegou um laço de renderização na trilha e um texto acessível que alargava a página no celular). |
 
 ## Mudanças de comportamento em relação ao legado (destacar na revisão de transição)
 

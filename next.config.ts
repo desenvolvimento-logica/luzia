@@ -31,6 +31,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  devIndicators: false,
   typedRoutes: false,
   async headers() {
     return [

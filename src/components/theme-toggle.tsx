@@ -26,7 +26,7 @@ export function ThemeToggle({ initial }: { initial: ThemePreference }) {
     <button
       type="button"
       onClick={next}
-      className="inline-flex size-10 items-center justify-center rounded-md hover:bg-white/10"
+      className="inline-flex size-11 items-center justify-center rounded-[var(--radius-control)] text-text hover:bg-surface-2"
       aria-label={`${LABEL[theme]}. Alterar tema`}
       title={LABEL[theme]}
     >

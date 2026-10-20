@@ -21,6 +21,18 @@ npm run verify      # tipos, lint, testes, build e checagem de segredos no bundl
 
 A CI (`.github/workflows/verify.yml`) roda o mesmo `npm run verify` em cada PR e em cada push na `main`.
 
+Interface sem login, com dados sintéticos (comparação com `mockups/`):
+
+```bash
+# Git Bash
+LUZIA_UI_PREVIEW=true npm run dev   # abrir http://localhost:3000/dev/preview/catalogo
+npm run screens                      # capturas em test-results/visual/ (desktop e celular, claro e escuro)
+# PowerShell
+$env:LUZIA_UI_PREVIEW="true"; npm run dev
+```
+
+Telas: `catalogo`, `catalogo-vazio`, `catalogo-admin`, `login`, `login-erro`, `relatorios`, `aplicacao`, `admin-aplicacoes`, `admin-aplicacao-editar`. A rota só existe com `LUZIA_UI_PREVIEW=true` e não acessa o banco.
+
 Interface local (precisa de um projeto Supabase com a fundação `luzia_` aplicada):
 
 ```bash

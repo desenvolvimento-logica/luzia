@@ -30,3 +30,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export function parseOptionalUuid(raw: unknown): string | null {
   return typeof raw === "string" && UUID.test(raw) ? raw.toLowerCase() : null;
 }
+
+export const REPORT_SORTS = ["opened_at", "collaborator", "department", "application"] as const;
+export type ReportSortKey = (typeof REPORT_SORTS)[number];
+
+/** Ordenação do histórico a partir da URL; padrão: data mais recente primeiro. */
+export function parseSort(sortRaw: unknown, dirRaw: unknown): { sort: ReportSortKey; dir: "asc" | "desc" } {
+  const sort = (REPORT_SORTS as readonly string[]).includes(sortRaw as string) ? (sortRaw as ReportSortKey) : "opened_at";
+  const dir = dirRaw === "asc" || dirRaw === "desc" ? dirRaw : sort === "opened_at" ? "desc" : "asc";
+  return { sort, dir };
+}

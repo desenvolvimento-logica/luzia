@@ -1,12 +1,11 @@
 "use client";
 
-import { LogIn } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { LOGIN_ERROR_MESSAGES } from "@/lib/auth/callback";
 import { browserSupabase } from "@/lib/supabase/browser";
 
-export function LoginButton({ next }: { next: string }) {
+export function LoginButton({ next, logo }: { next: string; logo: ReactNode }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,10 +28,16 @@ export function LoginButton({ next }: { next: string }) {
 
   return (
     <>
-      <Button variant="primary" className="w-full" onClick={signIn} disabled={pending} aria-busy={pending}>
-        <LogIn aria-hidden className="size-4" />
+      <button
+        type="button"
+        onClick={signIn}
+        disabled={pending}
+        aria-busy={pending}
+        className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-[var(--radius-control)] border border-control bg-surface px-4 text-base font-semibold text-text shadow-[0_1px_2px_rgb(16_24_40_/_0.06)] transition-colors hover:bg-surface-2 disabled:cursor-wait disabled:opacity-70"
+      >
+        {pending ? <Loader2 aria-hidden className="size-5 animate-spin" /> : logo}
         {pending ? "Redirecionando…" : "Entrar com Microsoft"}
-      </Button>
+      </button>
       {error ? (
         <p role="alert" className="mt-3 text-sm text-danger">
           {error}

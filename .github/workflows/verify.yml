@@ -37,6 +37,15 @@ jobs:
 
       - run: npm run verify
 
+      - name: Capturas de tela da interface
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-interface
+          path: test-results/visual/
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Artefatos dos testes de navegador
         if: failure()
         uses: actions/upload-artifact@v4
