@@ -32,6 +32,22 @@ describe("ensaio de migração e reversão (AC-16, simulação)", () => {
     expect((await db.query("select 1 from public.luzia_collaborators")).rows.length).toBeGreaterThan(0);
   });
 
+  it("impressão digital do legado (arquivo de verificação) é idêntica antes e depois da fundação e da importação", async () => {
+    const db = await createTestDb({ legacyOnly: true });
+    const fp = async () => {
+      const v = JSON.parse((await db.query<{ impressao_digital: string }>(sql("supabase/verification/luzia_legacy_fingerprint.check.sql"))).rows[0]!.impressao_digital);
+      delete v.gerado_em;
+      return v;
+    };
+    const before = await fp();
+    await applyMigrations(db);
+    await db.query("select private.luzia_import_legacy()");
+    expect(await fp()).toEqual(before);
+    // E detecta mudança real no legado.
+    await db.exec("update public.dpto set dpto_name = dpto_name || ' ' where dpto_name = 'Fiscal'");
+    expect((await fp()).dados.dpto.md5).not.toBe(before.dados.dpto.md5);
+  });
+
   it("reversão da fundação é recusada depois do corte", async () => {
     const db = await createTestDb({ phase: "primary" });
     await expect(db.exec(`begin; set local luzia.confirm_drop = 'remover-objetos-luzia'; ${sql(ROLLBACK)} commit;`)).rejects.toThrow(/fase primary ativa/);
