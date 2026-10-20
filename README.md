@@ -19,6 +19,8 @@ npm run test:e2e    # postMessage em navegador real, app simulada
 npm run verify      # tipos, lint, testes, build e checagem de segredos no bundle
 ```
 
+A CI (`.github/workflows/verify.yml`) roda o mesmo `npm run verify` em cada PR e em cada push na `main`.
+
 Interface local (precisa de um projeto Supabase com a fundação `luzia_` aplicada):
 
 ```bash
