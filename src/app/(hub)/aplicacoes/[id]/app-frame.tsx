@@ -17,6 +17,8 @@ interface Props {
   src: string;
   origin: string;
   openId: string;
+  /** Pré-visualização de interface: não registra abertura nem entrega sessão. */
+  simulate?: boolean;
 }
 
 async function currentSession() {
@@ -30,7 +32,14 @@ async function currentSession() {
   return s ? { access_token: s.access_token, refresh_token: s.refresh_token } : null;
 }
 
-export function AppFrame({ appId, name, src, origin, openId }: Props) {
+function statusText(outcome: DeliveryOutcome | null, loaded: boolean): string | null {
+  if (outcome === "enviada") return "Sessão enviada à aplicação. A aplicação não confirma o recebimento.";
+  if (outcome === "sem_sessao") return "Sua sessão no hub expirou. Entre novamente para usar esta aplicação.";
+  if (outcome === "erro") return "Não foi possível enviar a sessão à aplicação.";
+  return loaded ? "Aplicação carregada." : null;
+}
+
+export function AppFrame({ appId, name, src, origin, openId, simulate = false }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const bridgeRef = useRef<ReturnType<typeof createSessionBridge> | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -42,6 +51,7 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
 
   // Registro idempotente da abertura (mesmo openId em remontagens e no StrictMode).
   useEffect(() => {
+    if (simulate) return;
     let cancelled = false;
     registerOpen(appId, openId).then((r) => {
       if (!cancelled && !r.ok) setDenied(r.message);
@@ -49,9 +59,10 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [appId, openId]);
+  }, [appId, openId, simulate]);
 
   useEffect(() => {
+    if (simulate) return;
     const bridge = createSessionBridge({
       targetOrigin: origin,
       getFrameWindow: () => iframeRef.current?.contentWindow ?? null,
@@ -75,16 +86,16 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
       bridge.dispose();
       bridgeRef.current = null;
     };
-  }, [appId, origin]);
+  }, [appId, origin, simulate]);
 
   useEffect(() => {
-    if (!loaded || readySeen) return;
+    if (simulate || !loaded || readySeen) return;
     const t = window.setTimeout(() => {
       setSlow(true);
       void reportFrameIssue(appId, "sem_ready");
     }, READY_TIMEOUT_MS);
     return () => window.clearTimeout(t);
-  }, [loaded, readySeen, appId]);
+  }, [loaded, readySeen, appId, simulate]);
 
   if (denied) {
     return (
@@ -101,23 +112,19 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
     );
   }
 
+  const status = statusText(outcome, loaded);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-        <p aria-live="polite">
-          {outcome === "enviada"
-            ? "Sessão enviada à aplicação. A aplicação não confirma o recebimento."
-            : outcome === "sem_sessao"
-              ? "Sua sessão no hub expirou. Entre novamente para usar esta aplicação."
-              : outcome === "erro"
-                ? "Não foi possível enviar a sessão à aplicação."
-                : loaded
-                  ? "Aplicação carregada."
-                  : null}
-        </p>
+    <section aria-label={`Aplicação ${name}`} className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-card)] border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
+        <div className="min-w-0">
+          <h2 className="font-semibold">Área da aplicação integrada</h2>
+          <p className="text-sm text-muted" aria-live="polite">
+            {status ?? `Carregando ${name}…`}
+          </p>
+        </div>
         <Button
           variant="ghost"
-          className="min-h-8 px-2 text-xs"
+          className="shrink-0"
           onClick={() => {
             setLoaded(false);
             setReadySeen(false);
@@ -125,20 +132,22 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
             setFrameKey((k) => k + 1);
           }}
         >
-          <RotateCw aria-hidden className="size-3.5" />
-          Recarregar aplicação
+          <RotateCw aria-hidden className="size-4" />
+          Recarregar
         </Button>
       </div>
       {slow ? (
-        <Notice tone="warning">
-          A aplicação ainda não sinalizou que está pronta. Se a área abaixo estiver em branco, ela pode estar bloqueando a exibição
-          dentro do hub (X-Frame-Options ou CSP frame-ancestors) ou não ter o listener de sessão. O caso foi registrado para a
-          equipe de integração.
-        </Notice>
+        <div className="border-b border-border p-3">
+          <Notice tone="warning">
+            A aplicação ainda não sinalizou que está pronta. Se a área abaixo estiver em branco, ela pode estar bloqueando a
+            exibição dentro do hub (X-Frame-Options ou CSP frame-ancestors) ou não ter o listener de sessão. O caso foi registrado
+            para a equipe de integração.
+          </Notice>
+        </div>
       ) : null}
-      <div className="relative h-[calc(100dvh-11rem)] min-h-[28rem] overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="relative min-h-[28rem] flex-1 overflow-hidden rounded-b-[var(--radius-card)]">
         {!loaded ? (
-          <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-surface">
             <LoadingState label={`Carregando ${name}…`} />
           </div>
         ) : null}
@@ -147,7 +156,7 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
           ref={iframeRef}
           src={src}
           title={name}
-          className="size-full"
+          className="absolute inset-0 size-full"
           // Sem allow-top-navigation: a aplicação não pode navegar a janela do hub.
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
           referrerPolicy="strict-origin-when-cross-origin"
@@ -157,6 +166,6 @@ export function AppFrame({ appId, name, src, origin, openId }: Props) {
           }}
         />
       </div>
-    </div>
+    </section>
   );
 }
