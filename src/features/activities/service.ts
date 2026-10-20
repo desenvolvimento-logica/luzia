@@ -17,16 +17,16 @@ export interface ActivityRequest {
 }
 
 /**
- * 1) escopo resolvido no banco com a sessão do solicitante (report_scope_users exige relatório e aplica a matriz);
+ * 1) escopo resolvido no banco com a sessão do solicitante (luzia_report_scope exige relatório e aplica a matriz);
  * 2) só então o adaptador usa a service role, restrito aos e-mails desse escopo.
  */
 export async function fetchActivities(supabase: HubSupabase, req: ActivityRequest): Promise<ActivityResult> {
   const adapter = findAdapter(req.source);
   if (!adapter) return { status: "nao_suportado", message: "Fonte de atividades desconhecida." };
 
-  const { data, error } = await supabase.rpc("report_scope_users");
+  const { data, error } = await supabase.rpc("luzia_report_scope");
   if (error) return { status: "indisponivel", message: "Não foi possível resolver seu escopo de visibilidade." };
-  const scope: ScopeUser[] = (data ?? []).map((u) => ({ userId: u.user_id, name: u.user_name, email: u.user_email, dptoId: u.user_dpto }));
+  const scope: ScopeUser[] = (data ?? []).map((u) => ({ userId: u.collaborator_id, name: u.name, email: u.email, dptoId: u.department_id }));
 
   return adapter.fetch(
     narrowScope(scope, { userId: req.userId, dptoId: req.dptoId }),

@@ -6,19 +6,21 @@ import { TextArea, TextField } from "@/components/ui/field";
 import { saveApplication, uploadAppIcon } from "@/features/admin/actions";
 import { parseIcon } from "@/lib/security/icon";
 
+type Audience = "all_departments" | "selected_departments";
+
 interface AppValues {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   url: string;
   icon: string | null;
   active: boolean;
-  audience: "todos" | "selecionados";
-  dptoIds: number[];
+  audience: Audience;
+  departmentIds: number[];
 }
 
-export function ApplicationForm({ app, dptos, allowedOrigins }: { app?: AppValues; dptos: { id: number; name: string }[]; allowedOrigins: string[] }) {
-  const [audience, setAudience] = useState<"todos" | "selecionados">(app?.audience ?? "selecionados");
+export function ApplicationForm({ app, departments, allowedOrigins }: { app?: AppValues; departments: { id: number; name: string }[]; allowedOrigins: string[] }) {
+  const [audience, setAudience] = useState<Audience>(app?.audience ?? "selected_departments");
   const [icon, setIcon] = useState(app?.icon ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
@@ -40,17 +42,17 @@ export function ApplicationForm({ app, dptos, allowedOrigins }: { app?: AppValue
     <ActionForm action={saveApplication} className="grid max-w-3xl gap-5">
       {(s) => (
         <>
-          {app ? <input type="hidden" name="app_id" value={app.id} /> : null}
-          <TextField id="app_name" label="Nome" defaultValue={app?.name} required maxLength={80} error={s.fieldErrors?.app_name} />
-          <TextArea id="app_description" label="Descrição curta" defaultValue={app?.description ?? ""} maxLength={280} error={s.fieldErrors?.app_description} />
+          {app ? <input type="hidden" name="id" value={app.id} /> : null}
+          <TextField id="name" label="Nome" defaultValue={app?.name} required maxLength={80} error={s.fieldErrors?.name} />
+          <TextArea id="description" label="Descrição curta" defaultValue={app?.description ?? ""} maxLength={280} error={s.fieldErrors?.description} />
           <TextField
-            id="app_url"
+            id="url"
             label="URL publicada"
             type="url"
             inputMode="url"
             defaultValue={app?.url}
             required
-            error={s.fieldErrors?.app_url}
+            error={s.fieldErrors?.url}
             hint={
               allowedOrigins.length
                 ? `HTTPS, sem usuário/senha, em uma origem aprovada: ${allowedOrigins.join(", ")}. A origem define para onde a sessão é enviada.`
@@ -76,11 +78,11 @@ export function ApplicationForm({ app, dptos, allowedOrigins }: { app?: AppValue
               </div>
               <div className="flex min-w-60 flex-1 flex-col gap-3">
                 <TextField
-                  id="app_icon"
+                  id="icon"
                   label="Emoji ou imagem enviada"
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  error={s.fieldErrors?.app_icon}
+                  error={s.fieldErrors?.icon}
                   hint="Digite um emoji ou envie uma imagem. Imagens fora de 3:4 são cortadas nas laterais."
                 />
                 <div className="flex flex-col gap-1">
@@ -105,33 +107,33 @@ export function ApplicationForm({ app, dptos, allowedOrigins }: { app?: AppValue
           <fieldset className="flex flex-col gap-2">
             <legend className="text-sm font-medium">Audiência</legend>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" name="audience" value="todos" checked={audience === "todos"} onChange={() => setAudience("todos")} className="size-4" />
+              <input type="radio" name="audience" value="all_departments" checked={audience === "all_departments"} onChange={() => setAudience("all_departments")} className="size-4" />
               Todos os departamentos
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="radio" name="audience" value="selecionados" checked={audience === "selecionados"} onChange={() => setAudience("selecionados")} className="size-4" />
+              <input type="radio" name="audience" value="selected_departments" checked={audience === "selected_departments"} onChange={() => setAudience("selected_departments")} className="size-4" />
               Departamentos selecionados
             </label>
-            {audience === "selecionados" ? (
+            {audience === "selected_departments" ? (
               <div className="ml-6 grid gap-2 sm:grid-cols-2" role="group" aria-label="Departamentos com acesso">
-                {dptos.map((d) => (
+                {departments.map((d) => (
                   <label key={d.id} className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="dpto_ids" value={d.id} defaultChecked={app?.dptoIds.includes(d.id)} className="size-4" />
+                    <input type="checkbox" name="department_ids" value={d.id} defaultChecked={app?.departmentIds.includes(d.id)} className="size-4" />
                     {d.name}
                   </label>
                 ))}
               </div>
             ) : null}
-            {s.fieldErrors?.dpto_ids ? (
+            {s.fieldErrors?.department_ids ? (
               <p role="alert" className="text-xs text-danger">
-                {s.fieldErrors.dpto_ids}
+                {s.fieldErrors.department_ids}
               </p>
             ) : null}
             <p className="text-xs text-muted">“Não atribuído” nunca recebe aplicações, nem as de todos os departamentos.</p>
           </fieldset>
 
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="app_status" defaultChecked={app?.active ?? true} className="size-5" />
+            <input type="checkbox" name="active" defaultChecked={app?.active ?? true} className="size-5" />
             Aplicação ativa (inativa não abre nem recebe sessão)
           </label>
         </>

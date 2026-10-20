@@ -1,71 +1,74 @@
-# Plano de transição (Etapa 5)
+# Plano de transição — tabelas `luzia_` no Supabase compartilhado
 
-Nada deste plano foi executado em ambiente compartilhado. Executar em produção é uma ação separada, com aprovação explícita.
+Nada deste plano foi executado no projeto compartilhado. O projeto é produção (hub antigo, apps Lovable, LG, HelpDesk GC) e não há staging; cada passo marcado **[aprovação]** exige autorização explícita do dono do produto antes de rodar.
 
-## 0. Pré-requisitos
+Ordem dos arquivos, todos aplicados manualmente no SQL Editor (nunca `supabase db push`):
 
-1. Aprovação das mudanças de autorização listadas em `docs/decisoes.md` (“Mudanças de comportamento”).
-2. Backup recente e ponto de recuperação (PITR) confirmados no projeto Supabase compartilhado (X-08).
-3. Projeto Supabase isolado (ou Docker para `supabase start`) para o ensaio (X-01).
-4. Responsáveis pelas apps cientes de que o hub novo terá outra origem em staging.
+| Passo | Arquivo | Escreve em | Reversível por |
+|---|---|---|---|
+| 1 | `supabase/inventory/inventario-somente-leitura.sql` | nada | — |
+| 2 | `supabase/migrations/20261020100000_luzia_foundation.sql` | só objetos `luzia_` | `supabase/rollback/20261020100000_luzia_foundation.down.sql` |
+| 3 | `insert into public.luzia_settings ... azure_tenant_id` + `select private.luzia_import_legacy();` | só `luzia_` | reimportar / passo 2 reverso |
+| 4 | `supabase/verification/20261020100000_luzia_foundation.check.sql` | nada | — |
+| 5 | `supabase/cutover/20261020110000_luzia_switch_to_primary.sql` | `luzia_settings`; a partir daí o espelho escreve em `public.users`/`public.dpto` | `supabase/rollback/20261020110000_luzia_switch_to_primary.down.sql` |
 
-## 1. Inventário do banco real (somente leitura)
+## 1. Inventário (somente leitura)
 
-Executar `supabase/inventory/inventario-somente-leitura.sql` e comparar com `supabase/dev/01_legacy_baseline.sql`:
+Rodar o inventário e conferir antes de qualquer passo:
 
-- tipos de `user_id`, `dpto_id`, `app_id`, `log_id` e de `access_log.datetime` (a migração assume `bigint` e `timestamptz`);
-- ação das FKs de `applications_dpto` e `access_log` (a migração assume bloqueio, não `cascade`);
-- nomes reais das políticas (a migração as localiza dinamicamente e guarda em `private.policy_backup`);
-- gatilhos em `auth.users` (o de corte procura a função `public.link_auth_user_to_app_user`) e o gatilho inverso `link_app_user_to_auth_user`;
-- chaves de `identity_data` do provedor `azure` → confirmar onde está o `tid` (a RPC usa `tid` ou `custom_claims.tid`);
-- e-mails com maiúsculas em `users` e nas tabelas de perfil das apps (impacto em conciliação);
-- origens de `app_url` → valor de `LUZIA_APP_ALLOWED_ORIGINS`; URLs `http://` existentes;
-- políticas do bucket `app-icons` (as legadas usam `current_user_is_admin()`, que ignora `access_status`);
-- versão do Postgres.
+- seção 14: **nenhum** objeto `luzia_` existente (colisão de nomes);
+- seção 15: schema `private` existe e `authenticated` tem `USAGE` (a migração não altera o schema);
+- seções 1–2: colunas e restrições de `public.users` e `public.dpto` (a migração exige `user_create` nas duas — X-13; tipos `bigint` de `user_id`/`dpto_id`);
+- seção 13: FKs de outros sistemas para `public.users`/`public.dpto` (esperado: `gestao_cadastros_*`, `lic_profiles`); confirma por que o espelho nunca apaga linhas;
+- seção 8: chaves de `identity_data` do provedor `azure` → onde está o `tid` (a RPC aceita `tid` ou `custom_claims.tid`);
+- seção 9: `users_email_maiusculo` e e-mails repetidos ignorando maiúsculas (a importação aborta se houver repetidos);
+- seção 10: origens de `app_url` → valor de `LUZIA_APP_ALLOWED_ORIGINS`;
+- seção 7: gatilhos de `auth.users` (o hub novo não os altera).
 
-Registrar divergências em `docs/decisoes.md` e ajustar a migração **antes** de qualquer ensaio.
+Registrar divergências em `docs/decisoes.md` e ajustar a migração antes do passo 2.
 
-## 2. Ensaio em cópia isolada
+## 2. Fundação — fase coexistence **[aprovação]**
 
-1. Restaurar na cópia isolada um dump **somente de schema** + dados pseudonimizados ou sintéticos (nunca exports reais no repositório).
-2. Contagens antes (seção 9 do inventário).
-3. Aplicar `supabase/migrations/20261019000100_hub_v2_foundation.sql`. Em tabela `access_log` grande, criar antes, fora de transação, `create unique index concurrently access_log_open_id_key on public.access_log (open_id)` (após adicionar a coluna) para evitar bloqueio longo.
-4. Configurar o tenant: `insert into private.settings (key, value) values ('azure_tenant_id', '<pegar no Entra>')` — valor fora do repositório.
-5. Contagens depois (devem coincidir), backfill de `audience` (`todos` = apps sem vínculo), `Não atribuído` como `provisionamento`.
-6. Testar RLS via PostgREST com JWTs de identidades representativas (usuário, líder, coordenador, gerente, admin, desativado, pendente), comparando com `tests/db/authorization.test.ts`.
-7. Testar concorrência da última conta admin com duas sessões simultâneas.
-8. Ensaiar a reversão (`supabase/rollback/...down.sql`) e reaplicar.
+Efeito: cria tabelas, tipos, funções e políticas `luzia_`. **Nenhuma** escrita em tabelas legadas ou de outros sistemas (provado em `tests/db/import-and-mirror.test.ts` comparando impressão digital de dados, políticas, gatilhos e grants do legado).
 
-## 3. Coexistência (hub antigo + hub novo no mesmo banco)
+1. Confirmar backup/PITR (X-08).
+2. Aplicar a migração (é uma transação única; um erro nas verificações prévias aborta tudo — rodar `rollback` no editor se ele ficar em transação abortada).
+3. Configurar o tenant: `insert into public.luzia_settings (key, value) values ('azure_tenant_id', '<pegar no Entra>');` — o valor não vai para o repositório.
+4. Importar: `select private.luzia_import_legacy();` (retorna JSON com contagens antes/depois/legado). Pode ser repetido quantas vezes for preciso: é idempotente e só lê o legado.
+5. Verificação: todos os arrays de problemas vazios e `colaboradores_ausentes_no_luzia = 0`.
 
-Depois da migração, as novas políticas valem também para o hub antigo:
+Durante a coexistência:
 
-- **Congelar o cadastro de aplicações e departamentos no hub antigo.** Ele não conhece `audience`; uma app criada lá nasce `selecionados` e o banco recusa a gravação se não houver departamento; remover o último departamento de uma app também é recusado.
-- Colaboradores em “Não atribuído” deixam de ver apps globais nos dois hubs.
-- Desativados (`access_status`) perdem acesso nos dois hubs.
-- O hub antigo continua registrando acessos por `insert` direto (agora exige app autorizada).
-- O gatilho legado de auto-provisionamento continua ativo até o corte (R-02/R-03 permanecem até lá; o hub novo já nega contas fora do tenant).
+- O hub antigo continua sendo a fonte e operando sem nenhuma mudança.
+- O hub novo pode ser publicado em um domínio controlado para validação (incluir `https://<dominio>/auth/callback` nas Redirect URLs do Supabase; **não** mudar a Site URL compartilhada). Login, catálogo, abertura de apps e relatórios funcionam; a administração é somente leitura.
+- Quem entra no hub novo e ainda não foi importado é adotado se o gatilho legado já criou o cadastro; senão recebe "cadastro ainda não sincronizado".
+- Reimportar sempre que o hub antigo mudar cadastros (ou logo antes do corte).
 
-## 4. Staging do hub novo
+Reversão da fundação (só nesta fase): executar `supabase/rollback/20261020100000_luzia_foundation.down.sql` precedido de `set local luzia.confirm_drop = 'remover-objetos-luzia'` na mesma transação. Remove apenas objetos `luzia_` (inclusive eventos e novidades criados no hub novo).
 
-1. Deploy em domínio de staging controlado (não confiar em previews automáticos para SSO).
-2. Supabase Auth → URL Configuration: incluir o redirect `https://<staging>/auth/callback`.
-3. Variáveis: ver `.env.example` (valores no painel da Vercel/cofre).
-4. Em **uma** aplicação de referência, aceitar também a origem de staging no `HUB_ORIGIN` (X-05), verificando pelo bundle publicado (RB-09).
-5. Validar AC-01, AC-08 e o restante da coluna “Real” de `docs/criterios-de-aceite.md`.
+## 3. Validações antes do corte
 
-## 5. Corte
+- Login Microsoft real: access token traz `amr` oauth e provedor `azure` (X-14); tenant confere (X-03).
+- Uma aplicação de referência aceita a origem do hub novo e abre sem pedir senha (AC-08, X-05).
+- RLS via PostgREST com identidades representativas (usuário, líder, coordenador, gerente, admin, inativo, “Não atribuído”).
+- Revisão das mudanças de comportamento (`docs/decisoes.md`) com o dono do produto (X-10).
 
-1. Janela combinada; hub antigo em modo leitura.
-2. Domínio: seguir RB-06 da spec operacional (Site URL/Redirect URLs do Supabase, `HUB_ORIGIN` de **cada** app, domínio na Vercel). Em set/2026 essa troca quebrou login e todos os SSOs: validar app por app.
-3. Aplicar `supabase/cutover/20261019000200_remove_legacy_autoprovision.sql`.
-4. Conferir contagens, logins de identidades representativas, abertura de cada app, relatórios.
+## 4. Corte — fase primary **[aprovação]**
 
-## 6. Reversão
+1. Congelar cadastros no hub antigo (departamentos, usuários, aplicações).
+2. Aplicar `supabase/cutover/20261020110000_luzia_switch_to_primary.sql`: reimportação final, exige tenant configurado e admin ativo vinculado, muda a fase para `primary`.
+3. A partir daqui: administração acontece no hub novo; departamentos e colaboradores são espelhados para `public.dpto`/`public.users` com os mesmos IDs (HelpDesk GC e lic_ continuam funcionando); aplicações, audiências, estado de acesso e novidades vivem só em `luzia_`.
+4. Tirar o hub antigo do ar (ou deixá-lo só leitura). Mudanças feitas nele depois do corte **não** voltam para `luzia_`.
+5. Cadastros que o gatilho legado `on_auth_user_created` criar depois do corte são adotados no primeiro login no hub ou pelo botão “Trazer novos cadastros do legado” (Administração › Colaboradores).
 
-Restaurar só o deploy **não** reverte o banco. Ordem:
+Mudança de domínio (se houver): seguir RB-06 da spec operacional — Redirect URLs do Supabase, `HUB_ORIGIN` de **cada** app, domínio na Vercel. Em set/2026 essa troca quebrou login e todos os SSOs ao mesmo tempo: validar app por app.
 
-1. Frontend: promover o deploy anterior do hub antigo.
-2. Banco: `supabase/rollback/20261019000100_hub_v2_foundation.down.sql` (restaura políticas e privilégios guardados; mantém colunas novas, auditoria e backups). Se o corte já ocorreu, recriar o gatilho legado a partir de `private.trigger_backup`.
-3. Origens: devolver `HUB_ORIGIN` das apps e as Redirect URLs do Supabase ao domínio anterior.
-4. Conferir contagens e login no hub antigo.
+## 5. Reversão do corte
+
+`supabase/rollback/20261020110000_luzia_switch_to_primary.down.sql` volta a fase para `coexistence`. Nada é apagado; o legado já recebeu pelo espelho as mudanças de departamentos e colaboradores. **Não voltam** ao hub antigo: aplicações/audiências alteradas no hub novo, desativações, novidades e eventos. Depois, republicar o hub antigo e devolver as origens das apps.
+
+## Fora deste plano
+
+- Remover o gatilho legado de auto-provisionamento (R-02/R-03): afeta GC e lic_, que dependem das linhas criadas por ele. Decisão separada.
+- Aposentar `public.users`/`public.dpto`: só quando GC e lic_ deixarem de referenciá-las.
+- Migrar `access_log` e `patch_notes` (decidido não migrar em 20/10/2026).

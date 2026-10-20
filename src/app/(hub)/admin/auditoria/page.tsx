@@ -10,7 +10,13 @@ import { formatDateTime } from "@/lib/reports/period";
 
 export const metadata: Metadata = { title: "Auditoria" };
 const PAGE_SIZE = 25;
-const ENTITIES = { users: "Colaboradores", applications: "Aplicações", applications_dpto: "Audiência", dpto: "Departamentos", patch_notes: "Novidades" } as const;
+const ENTITIES = {
+  luzia_collaborators: "Colaboradores",
+  luzia_applications: "Aplicações",
+  luzia_application_departments: "Audiência",
+  luzia_departments: "Departamentos",
+  luzia_news: "Novidades",
+} as const;
 const ACTIONS: Record<string, string> = { insert: "Criação", update: "Alteração", delete: "Exclusão" };
 
 function describe(changes: Record<string, unknown>): string {
@@ -31,15 +37,15 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   const entity = typeof sp.entidade === "string" && sp.entidade in ENTITIES ? sp.entidade : null;
   const page = parsePage(sp.pagina);
   let q = supabase
-    .from("admin_audit")
-    .select("audit_id, created_at, actor_user_id, action, entity, entity_id, changes, reason", { count: "exact" })
+    .from("luzia_audit_events")
+    .select("id, created_at, actor_collaborator_id, action, entity, entity_id, changes, reason", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (entity) q = q.eq("entity", entity);
   const { data: rows, count } = await q;
-  const actorIds = [...new Set((rows ?? []).map((r) => r.actor_user_id).filter((v): v is number => v !== null))];
-  const { data: actors } = actorIds.length ? await supabase.from("users").select("user_id, user_name").in("user_id", actorIds) : { data: [] };
-  const actorName = new Map((actors ?? []).map((a) => [a.user_id, a.user_name]));
+  const actorIds = [...new Set((rows ?? []).map((r) => r.actor_collaborator_id).filter((v): v is number => v !== null))];
+  const { data: actors } = actorIds.length ? await supabase.from("luzia_collaborators").select("id, name").in("id", actorIds) : { data: [] };
+  const actorName = new Map((actors ?? []).map((a) => [a.id, a.name]));
 
   return (
     <>
@@ -75,9 +81,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.audit_id} className="border-t border-border align-top">
+                <tr key={r.id} className="border-t border-border align-top">
                   <td className="whitespace-nowrap px-3 py-2">{formatDateTime(r.created_at)}</td>
-                  <td className="px-3 py-2">{r.actor_user_id ? actorName.get(r.actor_user_id) ?? `#${r.actor_user_id}` : "Sistema"}</td>
+                  <td className="px-3 py-2">{r.actor_collaborator_id ? actorName.get(r.actor_collaborator_id) ?? `#${r.actor_collaborator_id}` : r.reason === "importacao-legado" ? "Importação do legado" : "Sistema"}</td>
                   <td className="px-3 py-2">{ACTIONS[r.action] ?? r.action}</td>
                   <td className="px-3 py-2">
                     {ENTITIES[r.entity as keyof typeof ENTITIES] ?? r.entity} #{r.entity_id}

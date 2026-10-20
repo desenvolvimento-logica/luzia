@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return error ? { ok: false, hint: error.hint, code: error.code } : { ok: true };
     },
     signOut: async () => {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
     },
   });
   // Origem configurada evita depender do cabeçalho Host; o caminho já é interno e validado.

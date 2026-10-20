@@ -55,6 +55,13 @@ describe("callback OAuth", () => {
     expect(d.signOut).toHaveBeenCalledOnce();
   });
 
+  it("cadastro ainda não sincronizado na coexistência tem mensagem própria", async () => {
+    const d = deps({ provision: async () => ({ ok: false, hint: "luzia_not_synced" }) });
+    expect(await run("code=abc", d)).toBe("/login?erro=nao_sincronizado");
+    expect(d.signOut).toHaveBeenCalledOnce();
+    expect(loginErrorMessage("nao_sincronizado")).toMatch(/ainda não chegou/);
+  });
+
   it("mensagens em português; código desconhecido cai na mensagem de callback", () => {
     expect(loginErrorMessage("cancelado")).toMatch(/cancelado/);
     expect(loginErrorMessage("qualquer")).toMatch(/inválido ou expirou/);

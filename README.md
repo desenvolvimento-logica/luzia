@@ -7,7 +7,7 @@ Portal do Escritório Lógica Contabilidade: login Microsoft corporativo, catál
 ## Requisitos
 
 - Node.js ≥ 20.9 (testado com 24.18), npm.
-- Para rodar a interface com login: um projeto Supabase **isolado** com o provedor Azure configurado (ou Docker + Supabase CLI para `supabase start`, indisponível nesta máquina).
+- Para rodar a interface com login: o projeto Supabase compartilhado com a fundação `luzia_` aplicada (com aprovação, ver `docs/transicao.md`), ou Docker + Supabase CLI para um `supabase start` local (indisponível nesta máquina).
 - Para `npm run test:e2e`: Google Chrome instalado.
 
 ## Primeiros passos
@@ -19,15 +19,15 @@ npm run test:e2e    # postMessage em navegador real, app simulada
 npm run verify      # tipos, lint, testes, build e checagem de segredos no bundle
 ```
 
-Interface local (precisa de Supabase isolado):
+Interface local (precisa de um projeto Supabase com a fundação `luzia_` aplicada):
 
 ```bash
 cp .env.example .env.local          # PowerShell: Copy-Item .env.example .env.local
-# preencher valores do projeto ISOLADO; nunca do projeto compartilhado sem aprovação
+# valores no cofre/painel da Vercel; nunca versionar
 npm run dev
 ```
 
-No Supabase isolado, aplicar nesta ordem (banco vazio): `supabase/dev/01_legacy_baseline.sql` → `supabase/migrations/*.sql` → `supabase/cutover/*.sql` → `supabase/dev/02_synthetic_seed.sql`, e definir o tenant em `private.settings`. **Não** aplicar `supabase/dev/00_supabase_platform_shim.sql` em um projeto Supabase (só existe para os testes em PGlite).
+O hub usa o projeto Supabase **compartilhado** (o mesmo do LG e do HelpDesk GC), com tabelas `luzia_`. Não há staging: o caminho de aplicação no projeto real, com aprovação a cada passo, está em `docs/transicao.md`. Em um Supabase local vazio (Docker), a ordem é: `supabase/dev/01_legacy_baseline.sql` → `supabase/dev/02_synthetic_seed.sql` → `supabase/migrations/*.sql` → tenant em `public.luzia_settings` → `select private.luzia_import_legacy();` → (opcional) `supabase/cutover/*.sql`. **Nunca** aplicar `supabase/dev/*` no projeto compartilhado; o `00_supabase_platform_shim.sql` só existe para os testes em PGlite.
 
 Aplicação simulada para testar o iframe localmente:
 
@@ -51,18 +51,19 @@ src/lib/sso/          contrato LUZIA_READY / LUZIA_SESSION
 src/lib/security/     URLs e origens aprovadas, redirect, upload, ícones
 src/lib/activities/   formato normalizado, escopo e adaptadores
 src/lib/supabase/     clientes separados: navegador, sessão do servidor, service role
-supabase/dev/         shim de teste, legado HIPOTÉTICO, seed sintético (só banco vazio)
-supabase/migrations/  migração incremental candidata
-supabase/rollback/    reversão compatível com os dados
-supabase/cutover/     remoção do auto-provisionamento legado (só no corte)
-supabase/inventory/   inventário somente leitura do banco real
+supabase/dev/          shim de teste, legado HIPOTÉTICO, seed sintético do legado (só banco vazio)
+supabase/migrations/   fundação luzia_ (tabelas, RLS, RPCs, importação, espelho)
+supabase/cutover/      troca para a fase primary
+supabase/rollback/     reversões (fundação: só na coexistência; corte)
+supabase/verification/ checagem somente leitura após aplicar
+supabase/inventory/    inventário somente leitura do banco real
 tests/                db (PGlite), unit, e2e (Chrome), fixtures
 docs/                 decisões e lacunas, critérios de aceite, operação, transição
 ```
 
 ## Documentos
 
-- `docs/decisoes.md` — inventário, decisões técnicas, mudanças de comportamento em relação ao legado e dependências externas (X-01…X-12).
+- `docs/decisoes.md` — inventário, mudança de direção para `luzia_`, decisões técnicas, mudanças de comportamento e dependências externas (X-01…X-14).
 - `docs/criterios-de-aceite.md` — AC-01…AC-16 com evidência por nível.
-- `docs/transicao.md` — inventário real, ensaio, coexistência, corte e reversão.
+- `docs/transicao.md` — inventário, fundação (coexistência), importação, corte (primary) e reversões, passo a passo.
 - `docs/operacao.md` — admissão, mudanças, desligamento, cadastro de app, rotação de segredos, falhas.

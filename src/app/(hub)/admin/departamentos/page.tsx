@@ -3,24 +3,28 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/states";
 import { requirePage } from "@/lib/auth/session";
 import { matchesSearch } from "@/lib/text";
-import { DptoCreateForm, DptoRow } from "./forms";
+import { DepartmentCreateForm, DepartmentRow } from "./forms";
 
 export const metadata: Metadata = { title: "Departamentos" };
 
-export default async function DptosPage({ searchParams }: PageProps<"/admin/departamentos">) {
-  const { supabase } = await requirePage("admin");
-  const q = typeof (await searchParams).q === "string" ? String((await searchParams).q) : "";
-  const [{ data: dptos }, { data: users }, { data: links }] = await Promise.all([
-    supabase.from("dpto").select("dpto_id, dpto_name, dpto_kind").order("dpto_name"),
-    supabase.from("users").select("user_dpto"),
-    supabase.from("applications_dpto").select("dpto_id"),
+export default async function DepartmentsPage({ searchParams }: PageProps<"/admin/departamentos">) {
+  const { supabase, user } = await requirePage("admin");
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q : "";
+  const [{ data: departments }, { data: people }, { data: links }] = await Promise.all([
+    supabase.from("luzia_departments").select("id, name, kind, active").order("name"),
+    supabase.from("luzia_collaborators").select("department_id, access_status"),
+    supabase.from("luzia_application_departments").select("department_id"),
   ]);
-  const count = (id: number, rows: { [k: string]: number | null }[] | null, key: string) => (rows ?? []).filter((r) => r[key] === id).length;
-  const list = (dptos ?? []).filter((d) => matchesSearch(q, d.dpto_name));
+  const list = (departments ?? []).filter((d) => matchesSearch(q, d.name));
+  const readOnly = user.adminReadOnly;
 
   return (
     <>
-      <PageHeader title="Departamentos" description="Departamentos definem o catálogo de cada colaborador." />
+      <PageHeader
+        title="Departamentos"
+        description="Definem o catálogo de cada colaborador. Não são excluídos (outros sistemas os referenciam): desative os que não forem mais usados."
+      />
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <form method="get" className="flex items-end gap-2">
           <div className="flex-1">
@@ -33,20 +37,22 @@ export default async function DptosPage({ searchParams }: PageProps<"/admin/depa
             Buscar
           </button>
         </form>
-        <DptoCreateForm />
+        {readOnly ? null : <DepartmentCreateForm />}
       </div>
       {list.length === 0 ? (
         <EmptyState title="Nenhum departamento encontrado" />
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
           {list.map((d) => (
-            <DptoRow
-              key={d.dpto_id}
-              id={d.dpto_id}
-              name={d.dpto_name}
-              protectedDpto={d.dpto_kind === "provisionamento"}
-              users={count(d.dpto_id, users, "user_dpto")}
-              apps={count(d.dpto_id, links, "dpto_id")}
+            <DepartmentRow
+              key={d.id}
+              id={d.id}
+              name={d.name}
+              active={d.active}
+              protectedDepartment={d.kind === "provisioning"}
+              activePeople={(people ?? []).filter((p) => p.department_id === d.id && p.access_status === "active").length}
+              apps={(links ?? []).filter((l) => l.department_id === d.id).length}
+              readOnly={readOnly}
             />
           ))}
         </ul>

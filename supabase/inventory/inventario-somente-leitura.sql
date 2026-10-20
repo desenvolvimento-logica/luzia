@@ -78,3 +78,21 @@ select id, name, public from storage.buckets where id = 'app-icons';
 
 -- 12. Versão do Postgres (a migração foi ensaiada em PGlite/Postgres 18)
 select version();
+
+-- 13. Dependências de outros sistemas nas tabelas do hub (FKs que o espelho luzia_ → legado precisa preservar)
+select c.conrelid::regclass as tabela_dependente, c.conname, c.confrelid::regclass as referencia,
+       case c.confdeltype when 'c' then 'cascade' when 'r' then 'restrict' when 'a' then 'no action' when 'n' then 'set null' else c.confdeltype::text end as on_delete
+  from pg_constraint c
+ where c.contype = 'f'
+   and c.confrelid in ('public.users'::regclass, 'public.dpto'::regclass, 'public.applications'::regclass, 'public.access_log'::regclass)
+ order by 3, 1;
+
+-- 14. Objetos luzia_ já existentes (antes da primeira aplicação devem ser zero; colisão de nomes)
+select 'relacao' as tipo, n.nspname || '.' || c.relname as nome from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relname like 'luzia\_%'
+union all select 'funcao', n.nspname || '.' || p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where p.proname like 'luzia\_%'
+union all select 'tipo', n.nspname || '.' || t.typname from pg_type t join pg_namespace n on n.oid = t.typnamespace where t.typname like 'luzia\_%' and t.typtype = 'e'
+order by 1, 2;
+
+-- 15. Schema private: dono e privilégio de uso (a migração exige USAGE para authenticated e não altera o schema)
+select n.nspname, pg_get_userbyid(n.nspowner) as dono, has_schema_privilege('authenticated', n.nspname, 'USAGE') as authenticated_usage
+  from pg_namespace n where n.nspname = 'private';

@@ -5,18 +5,18 @@ import { expect, it } from "vitest";
 import { createTestDb } from "./harness";
 
 it("inventário somente leitura executa e não altera o banco", async () => {
-  const db = await createTestDb();
+  const db = await createTestDb({ legacyOnly: true });
   const file = readFileSync(path.resolve(import.meta.dirname, "../../supabase/inventory/inventario-somente-leitura.sql"), "utf8");
   const statements = file
     .split(/;\s*\n/)
     .map((s) => s.replace(/^\s*--.*$/gm, "").trim())
     .filter(Boolean);
   expect(statements.every((s) => /^(select|with)\b/i.test(s))).toBe(true);
-  const before = await db.query("select (select count(*) from public.users) u, (select count(*) from public.admin_audit) a");
+  const before = await db.query("select (select count(*) from public.users) u, (select count(*) from public.dpto) d");
   for (const s of statements) {
     if (s.includes("storage.buckets")) continue;
     await db.query(s);
   }
-  const after = await db.query("select (select count(*) from public.users) u, (select count(*) from public.admin_audit) a");
+  const after = await db.query("select (select count(*) from public.users) u, (select count(*) from public.dpto) d");
   expect(after.rows).toEqual(before.rows);
 });

@@ -1,182 +1,169 @@
-// AC-03, AC-04, AC-05, AC-06 — RLS com identidades representativas, sem service role (simulação PGlite).
+// AC-03, AC-04, AC-05, AC-06 — RLS das tabelas luzia_ com identidades representativas, sem service role (PGlite).
 import { beforeAll, describe, expect, it } from "vitest";
 import { canOpenApp, canViewInReports, type Collaborator, type DptoKind, isCargo } from "@/lib/auth/matrix";
-import { asUser, createTestDb, type Db, E, expectSqlError, idOf } from "./harness";
+import { applicationId, asUser, collaboratorId, createTestDb, type Db, E, expectSqlError } from "./harness";
 
 let db: Db;
 
-interface UserRow { user_id: number; user_email: string; user_dpto: number; user_role: string; is_admin: boolean; access_status: string }
+interface Row { id: number; email: string; department_id: number; role: string; is_admin: boolean; access_status: string }
 
 async function loadCollaborators() {
-  const { rows } = await db.query<UserRow>("select user_id, user_email, user_dpto, user_role, is_admin, access_status from public.users");
+  const { rows } = await db.query<Row>("select id, email, department_id, role::text, is_admin, access_status::text from public.luzia_collaborators");
   return rows.map((r) => {
-    if (!isCargo(r.user_role)) throw new Error("cargo inválido");
-    const c: Collaborator = {
-      userId: Number(r.user_id), dptoId: Number(r.user_dpto), role: r.user_role,
-      isAdmin: r.is_admin, status: r.access_status === "ativo" ? "ativo" : "desativado",
-    };
-    return { email: r.user_email, c };
+    if (!isCargo(r.role)) throw new Error("cargo inválido");
+    const c: Collaborator = { userId: Number(r.id), dptoId: Number(r.department_id), role: r.role, isAdmin: r.is_admin, status: r.access_status === "active" ? "ativo" : "desativado" };
+    return { email: r.email, c };
   });
 }
 
 beforeAll(async () => {
-  db = await createTestDb();
+  db = await createTestDb({ phase: "primary" });
 });
 
 describe("matriz hierárquica (AC-05)", () => {
-  it("users: cada perfil vê o próprio registro + exatamente o escopo da matriz TypeScript", async () => {
+  it("cada perfil vê o próprio registro + exatamente o escopo da matriz TypeScript", async () => {
     const all = await loadCollaborators();
     for (const { email, c: me } of all) {
       const visible = await asUser(db, email, async (tx) =>
-        (await tx.query<{ user_id: number }>("select user_id from public.users order by user_id")).rows.map((r) => Number(r.user_id)),
+        (await tx.query<{ id: number }>("select id from public.luzia_collaborators order by id")).rows.map((r) => Number(r.id)),
       );
-      const expected = all
-        .filter(({ c }) => c.userId === me.userId || canViewInReports(me, c))
-        .map(({ c }) => c.userId)
-        .sort((a, b) => a - b);
+      const expected = all.filter(({ c }) => c.userId === me.userId || canViewInReports(me, c)).map(({ c }) => c.userId).sort((a, b) => a - b);
       expect(visible, email).toEqual(expected);
     }
   });
 
-  it("report_scope_users não inclui pares, superiores nem o próprio líder/coordenador", async () => {
-    const lider = await asUser(db, E.liderFiscal, async (tx) =>
-      (await tx.query<{ user_email: string }>("select user_email from public.report_scope_users()")).rows.map((r) => r.user_email),
-    );
-    expect(lider.sort()).toEqual([E.desativada, E.userFiscal, E.userFiscal2].sort());
-
-    const coord = await asUser(db, E.coordFiscal, async (tx) =>
-      (await tx.query<{ user_email: string }>("select user_email from public.report_scope_users()")).rows.map((r) => r.user_email),
-    );
-    expect(coord).not.toContain(E.coordFiscal);
-    expect(coord).not.toContain(E.coordFiscal2);
-    expect(coord).not.toContain(E.gerente);
+  it("escopo de relatório não inclui pares, superiores nem o próprio líder/coordenador", async () => {
+    const scope = (email: string) =>
+      asUser(db, email, async (tx) => (await tx.query<{ email: string }>("select email from public.luzia_report_scope()")).rows.map((r) => r.email));
+    expect((await scope(E.liderFiscal)).sort()).toEqual([E.desativada, E.userFiscal, E.userFiscal2].sort());
+    const coord = await scope(E.coordFiscal);
     expect(coord).toContain(E.liderFiscal2);
-    expect(coord).not.toContain(E.userTrib);
+    for (const e of [E.coordFiscal, E.coordFiscal2, E.gerente, E.userTrib]) expect(coord).not.toContain(e);
   });
 
   it("usuario comum não acessa relatórios", async () => {
-    await expectSqlError(asUser(db, E.userFiscal, (tx) => tx.query("select * from public.report_scope_users()")), /Sem acesso a relatórios/);
-    const logs = await asUser(db, E.userFiscal, (tx) => tx.query("select * from public.access_log"));
-    expect(logs.rows).toHaveLength(0);
+    await expectSqlError(asUser(db, E.userFiscal, (tx) => tx.query("select * from public.luzia_report_scope()")), /Sem acesso a relatórios/);
+    expect((await asUser(db, E.userFiscal, (tx) => tx.query("select * from public.luzia_access_events"))).rows).toHaveLength(0);
   });
 
-  it("anon não lê tabelas do hub", async () => {
-    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.users")), /permission denied/);
-    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.applications")), /permission denied/);
+  it("sessão que não veio do login Microsoft não enxerga nada, mesmo com JWT válido", async () => {
+    const r = await asUser(db, E.admin, async (tx) => ({
+      collaborators: (await tx.query("select 1 from public.luzia_collaborators")).rows.length,
+      apps: (await tx.query("select 1 from public.luzia_applications")).rows.length,
+    }), { microsoft: false });
+    expect(r).toEqual({ collaborators: 0, apps: 0 });
+  });
+
+  it("anon não lê tabelas luzia_", async () => {
+    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.luzia_collaborators")), /permission denied/);
+    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.luzia_applications")), /permission denied/);
+    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.luzia_settings")), /permission denied/);
   });
 });
 
 describe("catálogo por departamento (AC-03, AC-04)", () => {
   it("cada colaborador recebe exatamente o catálogo previsto pela matriz", async () => {
     const all = await loadCollaborators();
-    const { rows: apps } = await db.query<{ app_id: number; app_status: boolean; audience: "todos" | "selecionados"; dptos: number[] }>(
-      `select a.app_id, a.app_status, a.audience, coalesce(array_agg(d.dpto_id) filter (where d.dpto_id is not null), '{}') as dptos
-         from public.applications a left join public.applications_dpto d using (app_id) group by a.app_id`,
+    const { rows: apps } = await db.query<{ id: string; active: boolean; audience: string; depts: number[] }>(
+      `select a.id, a.active, a.audience::text, coalesce(array_agg(d.department_id) filter (where d.department_id is not null), '{}') as depts
+         from public.luzia_applications a left join public.luzia_application_departments d on d.application_id = a.id group by a.id`,
     );
-    const { rows: dptos } = await db.query<{ dpto_id: number; dpto_kind: DptoKind }>("select dpto_id, dpto_kind from public.dpto");
-    const kindOf = (id: number | null) => dptos.find((d) => Number(d.dpto_id) === id)?.dpto_kind ?? null;
-
+    const { rows: depts } = await db.query<{ id: number; kind: string }>("select id, kind::text from public.luzia_departments");
+    const kindOf = (id: number | null): DptoKind | null => {
+      const k = depts.find((d) => Number(d.id) === id)?.kind;
+      return k === "provisioning" ? "provisionamento" : k === "regular" ? "normal" : null;
+    };
     for (const { email, c } of all) {
-      const opened = await asUser(db, email, async (tx) =>
-        (await tx.query<{ app_id: number; ok: boolean }>("select a.app_id, public.luzia_can_open(a.app_id) as ok from public.applications a order by app_id")).rows,
+      const ok = await asUser(db, email, async (tx) =>
+        (await tx.query<{ id: string; ok: boolean }>("select a.id, public.luzia_can_open(a.id) as ok from public.luzia_applications a")).rows,
       );
-      const canOpen = opened.filter((r) => r.ok).map((r) => Number(r.app_id));
+      const got = ok.filter((r) => r.ok).map((r) => r.id).sort();
       const expected = apps
-        .filter((a) => canOpenApp(c, { appId: Number(a.app_id), active: a.app_status, audience: a.audience, dptoIds: a.dptos.map(Number) }, kindOf))
-        .map((a) => Number(a.app_id))
-        .sort((x, y) => x - y);
-      expect(canOpen, email).toEqual(expected);
+        .filter((a) => canOpenApp(c, { appId: 0, active: a.active, audience: a.audience === "all_departments" ? "todos" : "selecionados", dptoIds: a.depts.map(Number) }, kindOf))
+        .map((a) => a.id)
+        .sort();
+      expect(got, email).toEqual(expected);
     }
   });
 
   it("fiscal não vê nem abre app do tributário; app global aparece para ambos", async () => {
-    const msg = await idOf(db, "applications", "Mensagens e-CAC");
     const names = await asUser(db, E.userFiscal, async (tx) =>
-      (await tx.query<{ app_name: string }>("select app_name from public.applications order by app_name")).rows.map((r) => r.app_name),
+      (await tx.query<{ name: string }>("select name from public.luzia_applications order by name")).rows.map((r) => r.name),
     );
     expect(names).toEqual(["Fisco Check", "Portal Geral"]);
-    const ok = await asUser(db, E.userFiscal, async (tx) => (await tx.query<{ ok: boolean }>("select public.luzia_can_open($1) as ok", [msg])).rows[0]?.ok);
-    expect(ok).toBe(false);
+    const msg = await applicationId(db, "Mensagens e-CAC");
+    expect((await asUser(db, E.userFiscal, (tx) => tx.query<{ ok: boolean }>("select public.luzia_can_open($1) ok", [msg]))).rows[0]?.ok).toBe(false);
   });
 
-  it("'Não atribuído' não recebe nem as aplicações globais", async () => {
-    const names = await asUser(db, E.pendente, async (tx) => (await tx.query("select app_name from public.applications")).rows);
-    expect(names).toHaveLength(0);
+  it("'Não atribuído' (inclusive quem veio do legado sem departamento) não recebe nem as globais", async () => {
+    for (const email of [E.pendente, E.semDpto]) {
+      expect((await asUser(db, email, (tx) => tx.query("select 1 from public.luzia_applications"))).rows, email).toHaveLength(0);
+    }
   });
 
   it("aplicação inativa: admin vê na administração, mas ninguém abre", async () => {
-    const antiga = await idOf(db, "applications", "Aplicação Antiga");
-    const res = await asUser(db, E.admin, async (tx) =>
-      (await tx.query<{ n: number; ok: boolean }>("select (select count(*)::int from public.applications where app_id = $1) as n, public.luzia_can_open($1) as ok", [antiga])).rows[0],
+    const antiga = await applicationId(db, "Aplicação Antiga");
+    const r = await asUser(db, E.admin, async (tx) =>
+      (await tx.query<{ n: number; ok: boolean }>("select (select count(*)::int from public.luzia_applications where id = $1) n, public.luzia_can_open($1) ok", [antiga])).rows[0],
     );
-    expect(res).toEqual({ n: 1, ok: false });
+    expect(r).toEqual({ n: 1, ok: false });
   });
 
-  it("colaborador desativado não lê dados protegidos nem abre aplicações", async () => {
+  it("colaborador inativo não lê dados protegidos; vê só o próprio perfil", async () => {
     const r = await asUser(db, E.desativada, async (tx) => ({
-      apps: (await tx.query("select 1 from public.applications")).rows.length,
-      dptos: (await tx.query("select 1 from public.dpto")).rows.length,
-      notes: (await tx.query("select 1 from public.patch_notes")).rows.length,
-      users: (await tx.query<{ user_email: string }>("select user_email from public.users")).rows.map((x) => x.user_email),
+      apps: (await tx.query("select 1 from public.luzia_applications")).rows.length,
+      depts: (await tx.query("select 1 from public.luzia_departments")).rows.length,
+      news: (await tx.query("select 1 from public.luzia_news")).rows.length,
+      me: (await tx.query<{ email: string }>("select email from public.luzia_collaborators")).rows.map((x) => x.email),
+      profile: (await tx.query<{ access_status: string }>("select access_status from public.luzia_my_profile()")).rows[0]?.access_status,
     }));
-    expect(r).toEqual({ apps: 0, dptos: 0, notes: 0, users: [E.desativada] });
-  });
-
-  it("desativar um gestor corta o escopo dele imediatamente, mesmo com JWT válido", async () => {
-    await db.exec(`update public.users set access_status = 'desativado' where user_email = '${E.liderTrib}'`);
-    try {
-      await expectSqlError(asUser(db, E.liderTrib, (tx) => tx.query("select * from public.report_scope_users()")), /Sem acesso/);
-    } finally {
-      await db.exec(`update public.users set access_status = 'ativo' where user_email = '${E.liderTrib}'`);
-    }
+    expect(r).toEqual({ apps: 0, depts: 0, news: 0, me: [E.desativada], profile: "inactive" });
   });
 });
 
-describe("administração restrita (AC-06)", () => {
-  it("usuário comum não promove a si mesmo nem altera cargo", async () => {
-    const res = await asUser(db, E.userFiscal, async (tx) => {
-      const r1 = await tx.query(`update public.users set is_admin = true where user_email = '${E.userFiscal}'`);
-      const r2 = await tx.query(`update public.users set user_role = 'diretor' where user_email = '${E.userFiscal}'`);
-      return [r1.affectedRows, r2.affectedRows];
-    });
-    expect(res).toEqual([0, 0]);
-    const { rows } = await db.query<{ is_admin: boolean; user_role: string }>("select is_admin, user_role from public.users where user_email = $1", [E.userFiscal]);
-    expect(rows[0]).toEqual({ is_admin: false, user_role: "usuario" });
-  });
-
-  it("gerente/diretor não modificam cadastros, aplicações ou URL", async () => {
-    for (const email of [E.gerente, E.diretor, E.coordFiscal]) {
-      const affected = await asUser(db, email, async (tx) => {
-        const a = await tx.query("update public.applications set app_url = 'https://malicioso.example/'");
-        const b = await tx.query("update public.dpto set dpto_name = dpto_name || 'x'");
-        const c = await tx.query("delete from public.patch_notes");
-        return [a.affectedRows, b.affectedRows, c.affectedRows];
-      });
-      expect(affected, email).toEqual([0, 0, 0]);
-      await expectSqlError(asUser(db, email, (tx) => tx.query("insert into public.dpto (dpto_name) values ('Invasor')")), /row-level security/);
-      await expectSqlError(
-        asUser(db, email, (tx) => tx.query("select public.admin_save_application(null, 'X', null, 'https://x.exemplo.test/', null, true, 'todos', null)")),
-        /Somente administradores/,
-      );
+describe("escrita somente por RPC administrativa (AC-06)", () => {
+  it("nenhum cliente escreve direto nas tabelas, nem admin", async () => {
+    for (const stmt of [
+      "update public.luzia_collaborators set is_admin = true",
+      "insert into public.luzia_departments (id, name) values (999, 'X')",
+      "update public.luzia_applications set url = 'https://malicioso.example/'",
+      "delete from public.luzia_news",
+      "insert into public.luzia_access_events (open_id, collaborator_id, application_id) values (gen_random_uuid(), 1, gen_random_uuid())",
+      "truncate public.luzia_access_events",
+    ]) {
+      await expectSqlError(asUser(db, E.admin, (tx) => tx.query(stmt)), /permission denied/);
     }
   });
 
-  it("cliente não registra acesso em nome de outro nem trunca tabelas", async () => {
-    const other = await idOf(db, "users", E.userFiscal2);
-    const app = await idOf(db, "applications", "Portal Geral");
-    await expectSqlError(asUser(db, E.userFiscal, (tx) => tx.query("insert into public.access_log (user_id, app_id) values ($1, $2)", [other, app])), /row-level security/);
-    await expectSqlError(asUser(db, E.admin, (tx) => tx.query("truncate public.access_log")), /permission denied/);
-    await expectSqlError(asUser(db, E.admin, (tx) => tx.query("delete from public.access_log")), /permission denied/);
+  it("usuário comum não se promove; gerente/diretor não administram", async () => {
+    const me = await collaboratorId(db, E.userFiscal);
+    const fiscal = (await db.query<{ id: number }>("select id from public.luzia_departments where name = 'Fiscal'")).rows[0]!.id;
+    for (const email of [E.userFiscal, E.gerente, E.diretor]) {
+      await expectSqlError(
+        asUser(db, email, (tx) => tx.query("select public.luzia_admin_update_collaborator($1, $2, 'diretor', true, 'active')", [me, fiscal])),
+        /Somente administradores/,
+      );
+      await expectSqlError(
+        asUser(db, email, (tx) => tx.query("select public.luzia_admin_save_application(null, 'X', null, 'https://x.exemplo.test/', null, true, 'all_departments', null)")),
+        /Somente administradores/,
+      );
+    }
+    const { rows } = await db.query<{ is_admin: boolean; role: string }>("select is_admin, role::text from public.luzia_collaborators where id = $1", [me]);
+    expect(rows[0]).toEqual({ is_admin: false, role: "usuario" });
   });
 
-  it("inserção direta (hub antigo) exige aplicação autorizada", async () => {
-    const me = await idOf(db, "users", E.userFiscal);
-    const msg = await idOf(db, "applications", "Mensagens e-CAC");
-    await expectSqlError(asUser(db, E.userFiscal, (tx) => tx.query("insert into public.access_log (user_id, app_id) values ($1, $2)", [me, msg])), /row-level security/);
+  it("funções privadas e importação não ficam acessíveis a clientes", async () => {
+    await expectSqlError(asUser(db, null, (tx) => tx.query("select private.luzia_is_admin()")), /permission denied/);
+    await expectSqlError(asUser(db, null, (tx) => tx.query("select * from public.luzia_provision_me()")), /permission denied/);
+    await expectSqlError(asUser(db, E.admin, (tx) => tx.query("select private.luzia_import_legacy()")), /permission denied/);
   });
+});
 
-  it("funções privadas não ficam acessíveis a anon", async () => {
-    await expectSqlError(asUser(db, null, (tx) => tx.query("select private.is_admin()")), /permission denied/);
-    await expectSqlError(asUser(db, null, (tx) => tx.query("select public.luzia_provision_me()")), /permission denied/);
+describe("coexistência: administração somente leitura no hub novo", () => {
+  it("admin não altera cadastros enquanto o hub antigo é a fonte", async () => {
+    const co = await createTestDb({ phase: "coexistence" });
+    await expectSqlError(asUser(co, E.admin, (tx) => tx.query("select public.luzia_admin_save_department(null, 'Novo')")), /somente leitura durante a coexistência/);
+    const geral = await applicationId(co, "Portal Geral");
+    expect((await asUser(co, E.userFiscal, (tx) => tx.query<{ ok: boolean }>("select public.luzia_can_open($1) ok", [geral]))).rows[0]?.ok).toBe(true);
   });
 });

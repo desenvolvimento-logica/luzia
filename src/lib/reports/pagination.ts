@@ -24,3 +24,9 @@ export function buildQuery(params: Record<string, string | number | null | undef
   const s = q.toString();
   return s ? `?${s}` : "";
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function parseOptionalUuid(raw: unknown): string | null {
+  return typeof raw === "string" && UUID.test(raw) ? raw.toLowerCase() : null;
+}

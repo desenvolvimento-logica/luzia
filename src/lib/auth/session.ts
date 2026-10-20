@@ -13,6 +13,8 @@ export interface CurrentUser {
   collaborator: Collaborator;
   canSeeReports: boolean;
   isAdmin: boolean;
+  /** Na coexistência a administração no hub novo é somente leitura (fonte: hub antigo). */
+  adminReadOnly: boolean;
 }
 
 export type HubSession =
@@ -21,45 +23,36 @@ export type HubSession =
   | { state: "desativado"; name: string }
   | { state: "ativo"; user: CurrentUser };
 
-/** Lê identidade (validada no Auth via getUser) e o cadastro do hub, uma vez por requisição. */
+/** Lê identidade (validada no Auth via getUser) e o perfil luzia_, uma vez por requisição. */
 export const getHubSession = cache(async (): Promise<HubSession> => {
   const supabase = await serverSupabase();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { state: "anonimo" };
 
-  const { data: row } = await supabase
-    .from("users")
-    .select("user_id, user_name, user_email, user_role, is_admin, access_status, user_dpto")
-    .eq("auth_user_id", auth.user.id)
-    .maybeSingle();
-  if (!row) return { state: "sem_cadastro", email: auth.user.email ?? null };
-  if (row.access_status !== "ativo") return { state: "desativado", name: row.user_name };
+  const { data } = await supabase.rpc("luzia_my_profile");
+  const p = data?.[0];
+  if (!p) return { state: "sem_cadastro", email: auth.user.email ?? null };
+  if (p.access_status !== "active") return { state: "desativado", name: p.name };
 
-  let dptoName: string | null = null;
-  let dptoKind: DptoKind | null = null;
-  if (row.user_dpto !== null) {
-    const { data: d } = await supabase.from("dpto").select("dpto_name, dpto_kind").eq("dpto_id", row.user_dpto).maybeSingle();
-    dptoName = d?.dpto_name ?? null;
-    dptoKind = d?.dpto_kind ?? null;
-  }
   const collaborator: Collaborator = {
-    userId: row.user_id,
-    dptoId: row.user_dpto,
-    role: row.user_role,
-    isAdmin: row.is_admin,
+    userId: p.collaborator_id,
+    dptoId: p.department_id,
+    role: p.role,
+    isAdmin: p.is_admin,
     status: "ativo",
   };
   return {
     state: "ativo",
     user: {
-      userId: row.user_id,
-      name: row.user_name,
-      email: row.user_email,
-      dptoName,
-      dptoKind,
+      userId: p.collaborator_id,
+      name: p.name,
+      email: p.email,
+      dptoName: p.department_name,
+      dptoKind: p.department_kind === "provisioning" ? "provisionamento" : p.department_kind === "regular" ? "normal" : null,
       collaborator,
       canSeeReports: canSeeReports(collaborator),
       isAdmin: isAdmin(collaborator),
+      adminReadOnly: p.phase !== "primary",
     },
   };
 });

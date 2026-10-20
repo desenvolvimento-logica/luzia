@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { requirePage } from "@/lib/auth/session";
@@ -8,12 +9,13 @@ import { ApplicationForm } from "../form";
 export const metadata: Metadata = { title: "Nova aplicação" };
 
 export default async function NewAppPage() {
-  const { supabase } = await requirePage("admin");
-  const { data: dptos } = await supabase.from("dpto").select("dpto_id, dpto_name").eq("dpto_kind", "normal").order("dpto_name");
+  const { supabase, user } = await requirePage("admin");
+  if (user.adminReadOnly) redirect("/admin/aplicacoes");
+  const { data: departments } = await supabase.from("luzia_departments").select("id, name").eq("kind", "regular").eq("active", true).order("name");
   return (
     <>
       <PageHeader title="Nova aplicação" actions={<ButtonLink href="/admin/aplicacoes">Voltar à lista</ButtonLink>} />
-      <ApplicationForm dptos={(dptos ?? []).map((d) => ({ id: d.dpto_id, name: d.dpto_name }))} allowedOrigins={serverConfig().appOrigins} />
+      <ApplicationForm departments={departments ?? []} allowedOrigins={serverConfig().appOrigins} />
     </>
   );
 }

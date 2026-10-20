@@ -12,7 +12,7 @@ const READY_TIMEOUT_MS = 10_000;
 const REFRESH_MARGIN_S = 60;
 
 interface Props {
-  appId: number;
+  appId: string;
   name: string;
   src: string;
   origin: string;

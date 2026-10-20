@@ -1,6 +1,7 @@
 -- RECONSTRUÇÃO HIPOTÉTICA DO SCHEMA LEGADO DO HUB — SOMENTE PARA BANCO VAZIO DE DESENVOLVIMENTO.
 --
--- Fonte: LuzIA-Spec-Operacional.md, seção 5 ([CÓDIGO 19/10] lido em outra máquina; não verificado aqui).
+-- Fontes: LuzIA-Spec-Operacional.md, seção 5 ([CÓDIGO 19/10] lido em outra máquina) e HelpDesk GC
+-- docs/environment-decisions.md (nomes dos gatilhos, user_id/dpto_id bigint, leitura de dpto restrita a admin).
 -- Tipos de colunas, nomes de políticas, nomes de índices e detalhes dos gatilhos são SUPOSIÇÕES
 -- e precisam ser substituídos pelo dump real de schema (docs/decisoes.md, X-02).
 --
@@ -95,7 +96,8 @@ alter table public.applications_dpto enable row level security;
 alter table public.access_log enable row level security;
 alter table public.patch_notes enable row level security;
 
-create policy legacy_dpto_select on public.dpto for select to authenticated using (true);
+-- Segundo o HelpDesk GC, a leitura de nomes de public.dpto é restrita a administradores corporativos.
+create policy legacy_dpto_select on public.dpto for select to authenticated using (public.current_user_is_admin() or dpto_id = public.current_user_dpto());
 create policy legacy_dpto_write on public.dpto for all to authenticated
   using (public.current_user_is_admin()) with check (public.current_user_is_admin());
 
@@ -164,6 +166,22 @@ begin
 end
 $$;
 
-create trigger on_auth_user_created_link_hub
+create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.link_auth_user_to_app_user();
+
+-- Gatilho inverso: cadastro criado depois de a pessoa já ter conta em auth.users.
+create function public.link_app_user_to_auth_user() returns trigger
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if new.auth_user_id is null then
+    select id into new.auth_user_id from auth.users where lower(email) = lower(new.user_email);
+  end if;
+  return new;
+end
+$$;
+
+create trigger on_app_user_created_link_auth
+  before insert on public.users
+  for each row execute function public.link_app_user_to_auth_user();

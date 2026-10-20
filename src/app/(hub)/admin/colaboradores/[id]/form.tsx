@@ -6,18 +6,18 @@ import { updateCollaborator } from "@/features/admin/actions";
 import { CARGO_LABEL, CARGOS, type Cargo } from "@/lib/auth/matrix";
 
 interface Props {
-  user: { id: number; dpto: number | null; role: Cargo; isAdmin: boolean; status: "ativo" | "desativado" };
-  dptos: { id: number; name: string; provisioning: boolean }[];
+  collaborator: { id: number; departmentId: number; role: Cargo; isAdmin: boolean; status: "active" | "inactive" };
+  departments: { id: number; name: string; provisioning: boolean }[];
 }
 
-export function CollaboratorForm({ user, dptos }: Props) {
+export function CollaboratorForm({ collaborator, departments }: Props) {
   return (
     <ActionForm action={updateCollaborator}>
       {(s) => (
         <>
-          <input type="hidden" name="user_id" value={user.id} />
-          <SelectField id="user_dpto" label="Departamento" defaultValue={user.dpto ?? ""} required error={s.fieldErrors?.user_dpto}>
-            {dptos.map((d) => (
+          <input type="hidden" name="id" value={collaborator.id} />
+          <SelectField id="department_id" label="Departamento" defaultValue={collaborator.departmentId} required error={s.fieldErrors?.department_id}>
+            {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
                 {d.provisioning ? " (sem aplicações)" : ""}
@@ -25,10 +25,10 @@ export function CollaboratorForm({ user, dptos }: Props) {
             ))}
           </SelectField>
           <SelectField
-            id="user_role"
+            id="role"
             label="Cargo"
-            defaultValue={user.role}
-            error={s.fieldErrors?.user_role}
+            defaultValue={collaborator.role}
+            error={s.fieldErrors?.role}
             hint="Define o escopo de relatórios. Independe da permissão administrativa."
           >
             {CARGOS.map((c) => (
@@ -37,12 +37,12 @@ export function CollaboratorForm({ user, dptos }: Props) {
               </option>
             ))}
           </SelectField>
-          <SelectField id="access_status" label="Acesso ao hub" defaultValue={user.status} error={s.fieldErrors?.access_status}>
-            <option value="ativo">Ativo</option>
-            <option value="desativado">Desativado</option>
+          <SelectField id="access_status" label="Acesso ao hub" defaultValue={collaborator.status} error={s.fieldErrors?.access_status}>
+            <option value="active">Ativo</option>
+            <option value="inactive">Desativado</option>
           </SelectField>
           <div className="flex items-center gap-2">
-            <input id="is_admin" name="is_admin" type="checkbox" defaultChecked={user.isAdmin} className="size-5" />
+            <input id="is_admin" name="is_admin" type="checkbox" defaultChecked={collaborator.isAdmin} className="size-5" />
             <label htmlFor="is_admin" className="text-sm">
               Administrador do hub
             </label>
