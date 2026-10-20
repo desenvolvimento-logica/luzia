@@ -59,6 +59,17 @@ Não é editável pela tela. Executar, autenticado como administrador, a RPC `lu
 | Atividades “ainda não suportada” | Mapeamento da fonte não configurado (X-06). |
 | Atividades “indisponível” | Service role ausente no servidor ou a tabela da app não respondeu. |
 
+## Novidades (sininho)
+
+Toda mudança que o colaborador percebe vira uma novidade no painel do sininho.
+
+1. Escrever para quem usa o hub: frase curta, o que mudou e como usar; sem termos técnicos (banco, migração, deploy); não anunciar o que ainda depende de outra equipe.
+2. Registrar em `supabase/content/novidades/AAAAMMDD_assunto.sql`, com a próxima versão (ex.: `2.4`). O arquivo é idempotente: rodar de novo não duplica.
+3. Rodar o arquivo no SQL Editor logo depois que o deploy da mudança estiver no ar (antes, a novidade descreveria algo que ainda não existe).
+4. Alternativa: Administração › Publicar novidades (disponível também durante a transição, após `20261020130000_luzia_news_any_phase.sql`).
+
+O ponto amarelo no sino indica publicação nos últimos 7 dias; não há controle de leitura por pessoa.
+
 ## Retenção
 
 Não há expurgo automático de acessos, atividades ou auditoria. Definir política com o escritório antes de implementar (X-09).

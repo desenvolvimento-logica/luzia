@@ -108,17 +108,17 @@ const SCREENS: Record<string, { user: ShellUser; path: string; bare?: boolean; r
   catalogo: {
     user: PREVIEW_COLLABORATOR,
     path: "/",
-    render: () => <CatalogView departmentName="Tributário" pendingDepartment={false} isAdmin={false} apps={PREVIEW_APPS} news={PREVIEW_NEWS} />,
+    render: () => <CatalogView departmentName="Tributário" pendingDepartment={false} isAdmin={false} apps={PREVIEW_APPS} />,
   },
   "catalogo-vazio": {
     user: { ...PREVIEW_COLLABORATOR, dptoName: "Não atribuído" },
     path: "/",
-    render: () => <CatalogView departmentName="Não atribuído" pendingDepartment isAdmin={false} apps={[]} news={[]} />,
+    render: () => <CatalogView departmentName="Não atribuído" pendingDepartment isAdmin={false} apps={[]} />,
   },
   "catalogo-admin": {
     user: PREVIEW_ADMIN,
     path: "/",
-    render: () => <CatalogView departmentName="Administração" pendingDepartment={false} isAdmin apps={PREVIEW_APPS} news={PREVIEW_NEWS} />,
+    render: () => <CatalogView departmentName="Administração" pendingDepartment={false} isAdmin apps={PREVIEW_APPS} />,
   },
 };
 
@@ -133,7 +133,7 @@ export default async function PreviewPage({ params }: PageProps<"/dev/preview/[t
       user={screen.user}
       theme={parseTheme(store.get(THEME_COOKIE)?.value)}
       menuCollapsed={store.get(MENU_COOKIE)?.value === "recolhido"}
-      hasRecentNews
+      news={{ items: PREVIEW_NEWS, recent: true }}
       pathnameOverride={screen.path}
     >
       {screen.render()}

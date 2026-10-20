@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -10,24 +10,10 @@ import { Brand } from "../brand";
 import { ThemeToggle } from "../theme-toggle";
 import { AccountDetails, type AccountSummary, Avatar } from "./account";
 import { Breadcrumbs } from "./breadcrumbs";
+import { type BellNewsItem, NewsBell } from "./news-bell";
 import { NavList } from "./sidebar";
 
 const iconButton = "inline-flex size-11 items-center justify-center rounded-[var(--radius-control)] text-text hover:bg-surface-2";
-
-/** Atalho para Novidades. O ponto indica publicação nos últimos 7 dias — não há controle de leitura por pessoa. */
-function NewsBell({ hasRecentNews }: { hasRecentNews: boolean }) {
-  return (
-    <Link
-      href="/novidades"
-      className={`${iconButton} relative no-underline`}
-      aria-label={hasRecentNews ? "Novidades — há publicação nos últimos 7 dias" : "Novidades"}
-      title="Novidades"
-    >
-      <Bell aria-hidden className="size-5" />
-      {hasRecentNews ? <span aria-hidden className="absolute right-2.5 top-2.5 size-2 rounded-full bg-brand ring-2 ring-surface" /> : null}
-    </Link>
-  );
-}
 
 function MobileNav({ groups, account, pathnameOverride }: { groups: NavGroup[]; account: AccountSummary; pathnameOverride?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -77,13 +63,13 @@ export function Topbar({
   groups,
   account,
   theme,
-  hasRecentNews,
+  news,
   pathnameOverride,
 }: {
   groups: NavGroup[];
   account: AccountSummary;
   theme: ThemePreference;
-  hasRecentNews: boolean;
+  news: { items: BellNewsItem[]; recent: boolean };
   pathnameOverride?: string;
 }) {
   return (
@@ -98,7 +84,7 @@ export function Topbar({
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle initial={theme} />
         <span aria-hidden className="mx-1 hidden h-6 w-px bg-border md:block" />
-        <NewsBell hasRecentNews={hasRecentNews} />
+        <NewsBell items={news.items} recent={news.recent} />
         <span className="md:hidden">
           <Avatar name={account.name} className="ml-1 size-9 text-sm" />
         </span>

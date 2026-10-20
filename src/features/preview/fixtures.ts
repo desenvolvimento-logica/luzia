@@ -1,7 +1,7 @@
 // Dados SINTÉTICOS para a pré-visualização de interface (src/app/dev/preview). Nunca usados com o banco.
 import type { ShellUser } from "@/components/app-shell";
 import type { CatalogApp } from "@/features/catalog/types";
-import type { CatalogNews } from "@/features/catalog/catalog-view";
+import type { BellNewsItem } from "@/components/shell/news-bell";
 
 export const PREVIEW_COLLABORATOR: ShellUser = {
   name: "Camila Souza",
@@ -28,9 +28,12 @@ export const PREVIEW_APPS: CatalogApp[] = [
   { id: "00000000-0000-4000-8000-000000000004", name: "CPA Tax Planner", description: "Planeje cenários tributários com clareza.", icon: "📊" },
 ];
 
-export const PREVIEW_NEWS: CatalogNews[] = [
-  { id: "n1", title: "Novo visual do Luz.IA", body: "Menu lateral, catálogo reorganizado e tema escuro revisado.", publishedAt: "2026-10-20T15:00:00Z" },
-  { id: "n2", title: "Relatórios por período", body: "Totais calculados sobre todo o período, no fuso de Brasília.", publishedAt: "2026-10-19T12:00:00Z" },
+// Mesmo texto de supabase/content/novidades/20261020_novo-luzia.sql (mais recente primeiro).
+export const PREVIEW_NEWS: BellNewsItem[] = [
+  { id: "n1", title: "As novidades agora ficam no sininho", body: "Sempre que algo mudar no Luz.IA, o resumo aparece aqui, no sininho no alto da tela. A bolinha amarela indica que há novidade publicada nos últimos dias.", version: "2.3", publishedAt: "2026-10-20T15:30:00-03:00" },
+  { id: "n2", title: "Aplicações em tela cheia", body: "Ao abrir uma aplicação, ela agora ocupa toda a área da tela, sem margens.\n\nPrecisa de ainda mais espaço? Use o botão Tela cheia, na barra da aplicação. Para sair, aperte Esc.", version: "2.2", publishedAt: "2026-10-20T15:00:00-03:00" },
+  { id: "n3", title: "Relatórios mais completos para gestores", body: "Quem acompanha a equipe agora vê, para qualquer período:\n\n• total de aberturas, de colaboradores e de aplicações acessadas;\n• um gráfico dia a dia e as aplicações mais usadas;\n• o histórico completo, com ordenação por qualquer coluna.\n\nOs números consideram todo o período escolhido.", version: "2.1", publishedAt: "2026-10-20T14:10:00-03:00" },
+  { id: "n4", title: "Boas-vindas ao novo Luz.IA", body: "O Luz.IA foi reconstruído para ficar mais organizado e fácil de usar.\n\n• Menu lateral com tudo à mão — dá para recolhê-lo quando você precisar de mais espaço.\n• Catálogo com as aplicações do seu departamento e busca por nome.\n• Tema claro ou escuro: escolha no ícone ao lado do sininho.\n\nVocê continua entrando com a sua conta Microsoft do escritório, como sempre. Algumas aplicações ainda podem pedir login enquanto finalizamos a integração com o novo Luz.IA.", version: "2.0", publishedAt: "2026-10-20T14:00:00-03:00" },
 ];
 
 // Série sintética determinística (não é estatística real).

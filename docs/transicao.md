@@ -9,6 +9,8 @@ Ordem dos arquivos, todos aplicados manualmente no SQL Editor (nunca `supabase d
 | 1 | `supabase/inventory/inventario-somente-leitura.sql` | nada | — |
 | 2 | `supabase/migrations/20261020100000_luzia_foundation.sql` | só objetos `luzia_` | `supabase/rollback/20261020100000_luzia_foundation.down.sql` |
 | 2.1 | `supabase/migrations/20261020120000_luzia_reports_v2.sql` | só funções `public.luzia_report_*` | `supabase/rollback/20261020120000_luzia_reports_v2.down.sql` |
+| 2.2 | `supabase/migrations/20261020130000_luzia_news_any_phase.sql` | só `public.luzia_admin_save_news` | `supabase/rollback/20261020130000_luzia_news_any_phase.down.sql` |
+| — | `supabase/content/novidades/*.sql` (depois de cada deploy) | só `luzia_news` | apagar a linha da versão (somente novidades) |
 | 3 | `insert into public.luzia_settings ... azure_tenant_id` + `select private.luzia_import_legacy();` | só `luzia_` | reimportar / passo 2 reverso |
 | 4 | `supabase/verification/20261020100000_luzia_foundation.check.sql` | nada | — |
 | 5 | `supabase/cutover/20261020110000_luzia_switch_to_primary.sql` | `luzia_settings`; a partir daí o espelho escreve em `public.users`/`public.dpto` | `supabase/rollback/20261020110000_luzia_switch_to_primary.down.sql` |

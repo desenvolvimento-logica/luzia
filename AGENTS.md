@@ -20,4 +20,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `SUPABASE_SECRET_KEY` só em `src/lib/supabase/admin.ts` e só depois de resolver o escopo (`luzia_report_scope`).
 - Contrato `LUZIA_READY`/`LUZIA_SESSION` não muda sem versão nova documentada; nunca `*` como origem.
 - Diferenciar sempre: implementado / testado com simulação / validado em integração real (`docs/criterios-de-aceite.md`).
+- Toda mudança visível para o colaborador ganha uma novidade no sininho: arquivo idempotente em `supabase/content/novidades/` (identificado pela versão), texto curto em linguagem simples e amigável, sem termos técnicos e sem prometer o que ainda não funciona. Publicar junto com o deploy; a pré-visualização usa o mesmo texto.
 - Antes de concluir: `npm run verify`.

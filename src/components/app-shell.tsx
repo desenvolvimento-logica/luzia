@@ -4,6 +4,7 @@ import { navGroups } from "@/lib/navigation";
 import type { ThemePreference } from "@/lib/theme";
 import type { AccountSummary } from "./shell/account";
 import { BreadcrumbProvider } from "./shell/breadcrumbs";
+import type { BellNewsItem } from "./shell/news-bell";
 import { MainArea } from "./shell/main-area";
 import { Sidebar } from "./shell/sidebar";
 import { Topbar } from "./shell/topbar";
@@ -21,14 +22,14 @@ export function AppShell({
   user,
   theme,
   menuCollapsed,
-  hasRecentNews,
+  news,
   pathnameOverride,
   children,
 }: {
   user: ShellUser;
   theme: ThemePreference;
   menuCollapsed: boolean;
-  hasRecentNews: boolean;
+  news: { items: BellNewsItem[]; recent: boolean };
   /** Só para a pré-visualização: caminho simulado para menu ativo e trilha. */
   pathnameOverride?: string;
   children: ReactNode;
@@ -46,7 +47,7 @@ export function AppShell({
       <div className="flex min-h-dvh">
         <Sidebar groups={groups} account={account} initialCollapsed={menuCollapsed} pathnameOverride={pathnameOverride} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar groups={groups} account={account} theme={theme} hasRecentNews={hasRecentNews} pathnameOverride={pathnameOverride} />
+          <Topbar groups={groups} account={account} theme={theme} news={news} pathnameOverride={pathnameOverride} />
           <MainArea pathnameOverride={pathnameOverride}>{children}</MainArea>
         </div>
       </div>

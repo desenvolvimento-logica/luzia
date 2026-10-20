@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AccountState } from "@/components/account-state";
 import { AppShell } from "@/components/app-shell";
-import { hasRecentNews } from "@/features/news/queries";
+import { bellNews } from "@/features/news/queries";
 import { getHubSession } from "@/lib/auth/session";
 import { serverSupabase } from "@/lib/supabase/server";
 import { MENU_COOKIE, parseTheme, THEME_COOKIE } from "@/lib/theme";
@@ -28,7 +28,7 @@ export default async function HubLayout({ children }: { children: ReactNode }) {
   }
 
   const store = await cookies();
-  const recentNews = await hasRecentNews(await serverSupabase());
+  const news = await bellNews(await serverSupabase());
   const u = session.user;
 
   return (
@@ -36,7 +36,7 @@ export default async function HubLayout({ children }: { children: ReactNode }) {
       user={{ name: u.name, email: u.email, dptoName: u.dptoName, role: u.collaborator.role, isAdmin: u.isAdmin, canSeeReports: u.canSeeReports }}
       theme={parseTheme(store.get(THEME_COOKIE)?.value)}
       menuCollapsed={store.get(MENU_COOKIE)?.value === "recolhido"}
-      hasRecentNews={recentNews}
+      news={news}
     >
       {children}
     </AppShell>
