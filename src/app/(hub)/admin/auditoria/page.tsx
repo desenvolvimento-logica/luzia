@@ -68,7 +68,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
       {!rows?.length ? (
         <EmptyState title="Nenhum registro" />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+        <div className="relative overflow-x-auto rounded-lg border border-border bg-surface">
           <table className="w-full min-w-[44rem] text-left text-sm">
             <thead className="bg-surface-2">
               <tr>

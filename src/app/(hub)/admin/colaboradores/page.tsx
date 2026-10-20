@@ -79,7 +79,7 @@ export default async function CollaboratorsPage({ searchParams }: PageProps<"/ad
       {!people?.length ? (
         <EmptyState title="Nenhum colaborador encontrado" />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+        <div className="relative overflow-x-auto rounded-lg border border-border bg-surface">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <thead className="bg-surface-2">
               <tr>

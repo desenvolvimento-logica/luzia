@@ -5,17 +5,17 @@ export function ReportTabs({ current }: { current: "acessos" | "atividades" }) {
     <Link
       href={href}
       aria-current={current === key ? "page" : undefined}
-      className={`inline-flex min-h-10 items-center border-b-2 px-3 text-sm text-text no-underline ${
-        current === key ? "border-brand font-medium" : "border-transparent text-muted hover:border-border"
+      className={`-mb-px inline-flex min-h-11 items-center border-b-2 px-4 text-[15px] no-underline ${
+        current === key ? "border-brand font-semibold text-text" : "border-transparent text-muted hover:text-text"
       }`}
     >
       {label}
     </Link>
   );
   return (
-    <nav aria-label="Tipo de relatório" className="mb-4 flex gap-2 border-b border-border">
-      {tab("acessos", "/relatorios", "Acessos pelo hub")}
-      {tab("atividades", "/relatorios/atividades", "Atividades nas aplicações")}
+    <nav aria-label="Tipo de relatório" className="flex gap-2 border-b border-border">
+      {tab("acessos", "/relatorios", "Acessos")}
+      {tab("atividades", "/relatorios/atividades", "Atividades")}
     </nav>
   );
 }

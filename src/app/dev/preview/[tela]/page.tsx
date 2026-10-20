@@ -4,7 +4,10 @@ import { AppShell, type ShellUser } from "@/components/app-shell";
 import { LoginView } from "@/app/login/login-view";
 import { OpenAppView } from "@/features/apps/open-app-view";
 import { CatalogView } from "@/features/catalog/catalog-view";
-import { PREVIEW_ADMIN, PREVIEW_APPS, PREVIEW_COLLABORATOR, PREVIEW_NEWS } from "@/features/preview/fixtures";
+import {
+  PREVIEW_ADMIN, PREVIEW_APPS, PREVIEW_COLLABORATOR, PREVIEW_FILTER_OPTIONS, PREVIEW_METRICS, PREVIEW_NEWS, PREVIEW_REPORT_ROWS,
+} from "@/features/preview/fixtures";
+import { ReportsView } from "@/features/reports/reports-view";
 import { previewEnabled } from "@/features/preview/gate";
 import { MENU_COOKIE, parseTheme, THEME_COOKIE } from "@/lib/theme";
 
@@ -18,6 +21,24 @@ const SCREENS: Record<string, { user: ShellUser; path: string; bare?: boolean; r
     path: "/login",
     bare: true,
     render: () => <LoginView errorMessage="O login foi cancelado. Você pode tentar novamente quando quiser." next="/" year={2026} />,
+  },
+  relatorios: {
+    user: PREVIEW_ADMIN,
+    path: "/relatorios",
+    render: () => (
+      <ReportsView
+        period={{ from: "2026-10-01", to: "2026-10-20", adjusted: false }}
+        filters={{ from: "2026-10-01", to: "2026-10-20", appId: null, userId: null, dptoId: null }}
+        options={PREVIEW_FILTER_OPTIONS}
+        metrics={PREVIEW_METRICS}
+        rows={PREVIEW_REPORT_ROWS}
+        total={1284}
+        page={1}
+        pageSize={25}
+        sort="opened_at"
+        dir="desc"
+      />
+    ),
   },
   aplicacao: {
     user: PREVIEW_ADMIN,

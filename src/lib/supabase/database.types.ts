@@ -92,6 +92,7 @@ export type AuditEventRow = {
 export type ReportMetrics = {
   total_opens: number;
   distinct_collaborators: number;
+  distinct_applications: number;
   top_applications: { application_id: string; name: string | null; total: number }[];
   daily: { day: string; total: number }[];
 };
@@ -120,6 +121,9 @@ export type MyProfile = {
   department_kind: DbDepartmentKind | null;
   phase: DbPhase;
 };
+
+export type ReportSort = "opened_at" | "collaborator" | "department" | "application";
+export type SortDir = "asc" | "desc";
 
 type ReportFilters = {
   p_from: string;
@@ -178,7 +182,10 @@ export type Database = {
       };
       luzia_report_application_names: { Args: Record<string, never>; Returns: { application_id: string; name: string }[] };
       luzia_report_access_metrics: { Args: ReportFilters; Returns: ReportMetrics };
-      luzia_report_access_page: { Args: ReportFilters & { p_limit: number; p_offset: number }; Returns: ReportPageRow[] };
+      luzia_report_access_page: {
+        Args: ReportFilters & { p_limit: number; p_offset: number; p_sort?: ReportSort; p_dir?: SortDir };
+        Returns: ReportPageRow[];
+      };
     };
     Enums: {
       luzia_hierarchy_role: DbCargo;
