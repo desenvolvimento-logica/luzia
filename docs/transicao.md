@@ -79,7 +79,10 @@ Mudança de domínio (se houver): seguir RB-06 da spec operacional — Redirect 
 | 20/10/2026 | 4 — verificação | Fase `coexistence`; sem RLS desligado, sem escrita direta, sem leitura `anon`, sem função definer sem `search_path`, sem objeto `luzia_` em tabelas compartilhadas; 0 divergências; 1 admin ativo. |
 | 20/10/2026 14:52 | impressão digital (depois) | **Idêntica** à anterior em dados e estrutura (políticas, gatilhos, grants, funções, ACL do schema `private`). |
 
-Executado pelo responsável no SQL Editor; resultados (sem dados pessoais) conferidos na sessão de desenvolvimento.
+| 20/10/2026 | hub novo em `https://luzia-hub.vercel.app` (Vercel, time `luz-ia`, projeto `luzia`) | Variáveis de produção cadastradas (sem `SUPABASE_SECRET_KEY`); redirect `/auth/callback` incluído no Supabase Auth (Site URL compartilhada intocada). Conferido no deploy: rotas protegidas, 401 da API sem sessão, callback cancelado/inválido/redirect externo, CSP com as 6 origens aprovadas, bundle sem a chave secreta. |
+| 20/10/2026 | teste manual do responsável | Login Microsoft real, catálogo, administração somente leitura e relatórios funcionando. Abertura de apps ainda sem SSO (X-05). Layout considerado insatisfatório; referências visuais em preparação. |
+
+Executado pelo responsável no SQL Editor e no painel; resultados (sem dados pessoais) conferidos na sessão de desenvolvimento.
 
 ## Fora deste plano
 

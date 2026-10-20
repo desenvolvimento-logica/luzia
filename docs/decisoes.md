@@ -114,4 +114,4 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 | X-13 | ~~Colunas e restrições reais de `public.users`/`public.dpto`~~ — **resolvido** pelo inventário de 20/10/2026 | — | — |
 | X-15 | ~~Confirmar se `user_id`/`dpto_id` são identity~~ — **resolvido**: `GENERATED ALWAYS` | — | — |
 | X-16 | Revisar os 25 vínculos aplicação × departamento (F-01): hoje todos veem tudo | Expectativa dos colaboradores no corte | Dono do produto |
-| X-14 | Confirmar que o access token do login Azure no projeto traz `amr` com `oauth` e `app_metadata.providers` com `azure` (o LG depende do mesmo critério em produção) | Todo acesso a dados `luzia_` | Login real |
+| X-14 | ~~Claims `amr`/provedor no token real~~ — **confirmado** em 20/10/2026 (login real lê dados `luzia_`) | — | — |

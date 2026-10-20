@@ -4,7 +4,7 @@ Estado em 20/10/2026 (tabelas `luzia_` no Supabase compartilhado, fases coexiste
 
 - **Implementado** — o código existe neste repositório.
 - **Simulação** — teste automatizado local: PGlite no lugar do Postgres do Supabase (com *shim* de `auth.*` e papéis), dublês no lugar de Supabase Auth/Microsoft/PostgREST, aplicação simulada no lugar das apps Lovable.
-- **Real** — validado contra Supabase, Microsoft Entra ou aplicação integrada real. Em 20/10/2026, só a parte de banco do AC-16 (fundação, importação e verificação no projeto compartilhado); login, sessão e telas ainda não.
+- **Real** — validado contra Supabase, Microsoft Entra ou aplicação integrada real. Em 20/10/2026: parte de banco do AC-16 e, por teste manual do responsável em `https://luzia-hub.vercel.app`, o caminho feliz do AC-01 (login Microsoft corporativo) e do catálogo. Recusa de conta externa, matriz com outros perfis e SSO das apps (AC-08) ainda não.
 
 Comandos: `npm test` (Vitest: banco + unidade), `npm run test:e2e` (Chrome real, origens locais), `npm run verify` (tudo + build + bundle).
 
