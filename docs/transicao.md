@@ -1,6 +1,6 @@
 # Plano de transição — tabelas `luzia_` no Supabase compartilhado
 
-Nada deste plano foi executado no projeto compartilhado. O projeto é produção (hub antigo, apps Lovable, LG, HelpDesk GC) e não há staging; cada passo marcado **[aprovação]** exige autorização explícita do dono do produto antes de rodar.
+**Estado em 20/10/2026:** passos 1 a 4 executados no projeto compartilhado (fase `coexistence`). O corte (passo 5) não foi feito. Registro em [Execuções](#execuções). O projeto é produção (hub antigo, apps Lovable, LG, HelpDesk GC) e não há staging; cada passo marcado **[aprovação]** exige autorização explícita do dono do produto antes de rodar.
 
 Ordem dos arquivos, todos aplicados manualmente no SQL Editor (nunca `supabase db push`):
 
@@ -66,6 +66,20 @@ Mudança de domínio (se houver): seguir RB-06 da spec operacional — Redirect 
 ## 5. Reversão do corte
 
 `supabase/rollback/20261020110000_luzia_switch_to_primary.down.sql` volta a fase para `coexistence`. Nada é apagado; o legado já recebeu pelo espelho as mudanças de departamentos e colaboradores. **Não voltam** ao hub antigo: aplicações/audiências alteradas no hub novo, desativações, novidades e eventos. Depois, republicar o hub antigo e devolver as origens das apps.
+
+## Execuções
+
+| Data (UTC) | Passo | Resultado |
+|---|---|---|
+| 20/10/2026 14:10 | 1 — inventário | Sem objetos `luzia_`; pré-condições atendidas; achados F-01 a F-03 (`docs/decisoes.md`). Complemento: `user_id`/`dpto_id` são `GENERATED ALWAYS`. |
+| 20/10/2026 14:46 | impressão digital (antes) | 17 dpto, 133 users, 679 access_log, 8 applications, 25 applications_dpto, 3 patch_notes, 76 auth.users. |
+| 20/10/2026 | 2 — fundação | Aplicada sem erro (transação única). |
+| 20/10/2026 | 2 — tenant | Gravado a partir de `auth.identities` (1 tenant); valor não registrado no repositório. |
+| 20/10/2026 | 3 — importação | 17 departamentos, 133 colaboradores, 8 aplicações, 25 vínculos; 0 registros só no `luzia_`. |
+| 20/10/2026 | 4 — verificação | Fase `coexistence`; sem RLS desligado, sem escrita direta, sem leitura `anon`, sem função definer sem `search_path`, sem objeto `luzia_` em tabelas compartilhadas; 0 divergências; 1 admin ativo. |
+| 20/10/2026 14:52 | impressão digital (depois) | **Idêntica** à anterior em dados e estrutura (políticas, gatilhos, grants, funções, ACL do schema `private`). |
+
+Executado pelo responsável no SQL Editor; resultados (sem dados pessoais) conferidos na sessão de desenvolvimento.
 
 ## Fora deste plano
 
