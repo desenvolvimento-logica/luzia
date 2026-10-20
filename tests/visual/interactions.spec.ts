@@ -69,3 +69,17 @@ test("gráfico: setas do teclado percorrem os dias", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("status").filter({ hasText: "aberturas em 02/10" })).toBeVisible();
 });
+
+test("aplicação aberta: iframe ocupa toda a área abaixo da barra superior", async ({ page }) => {
+  for (const [w, h, sidebar] of [[1440, 1000, 64], [1280, 720, 64], [390, 844, 0]] as const) {
+    await page.setViewportSize({ width: w, height: h });
+    await open(page, "/dev/preview/aplicacao");
+    const box = await page.locator("iframe[title='PERDCOMP']").boundingBox();
+    expect(box, `${w}x${h}`).not.toBeNull();
+    // Barra superior (64) + barra da aplicação (48) + bordas; largura: tudo menos o menu recolhido.
+    expect(box!.width, `largura ${w}x${h}`).toBeGreaterThanOrEqual(w - sidebar - 2);
+    expect(box!.height, `altura ${w}x${h}`).toBeGreaterThanOrEqual(h - 64 - 48 - 4);
+  }
+  await expect(page.getByRole("link", { name: "Voltar ao catálogo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Recarregar aplicação" })).toBeVisible();
+});

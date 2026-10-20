@@ -1,9 +1,10 @@
 "use client";
 
-import { RotateCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { ErrorState, LoadingState, Notice } from "@/components/ui/states";
+import { ArrowLeft, Maximize2, Minimize2, RotateCw, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { ButtonLink } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/ui/states";
 import { authorizeSessionDelivery, registerOpen, reportFrameIssue } from "@/features/apps/actions";
 import { createSessionBridge, type DeliveryOutcome } from "@/lib/sso/bridge";
 import { browserSupabase } from "@/lib/supabase/browser";
@@ -14,6 +15,9 @@ const REFRESH_MARGIN_S = 60;
 interface Props {
   appId: string;
   name: string;
+  /** Ícone já renderizado (servidor) para a barra. */
+  icon: ReactNode;
+  departmentName: string | null;
   src: string;
   origin: string;
   openId: string;
@@ -32,14 +36,22 @@ async function currentSession() {
   return s ? { access_token: s.access_token, refresh_token: s.refresh_token } : null;
 }
 
-function statusText(outcome: DeliveryOutcome | null, loaded: boolean): string | null {
-  if (outcome === "enviada") return "Sessão enviada à aplicação. A aplicação não confirma o recebimento.";
+function statusText(outcome: DeliveryOutcome | null, loaded: boolean, name: string): string {
+  if (outcome === "enviada") return "Sessão enviada à aplicação (a aplicação não confirma o recebimento).";
   if (outcome === "sem_sessao") return "Sua sessão no hub expirou. Entre novamente para usar esta aplicação.";
   if (outcome === "erro") return "Não foi possível enviar a sessão à aplicação.";
-  return loaded ? "Aplicação carregada." : null;
+  return loaded ? "Aplicação carregada." : `Carregando ${name}…`;
 }
 
-export function AppFrame({ appId, name, src, origin, openId, simulate = false }: Props) {
+const toolButton =
+  "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-sm font-medium text-text no-underline hover:bg-surface-2";
+
+/**
+ * Moldura mínima: uma barra de 48 px e o iframe ocupando toda a área restante (spec 3: privilegiar a aplicação).
+ * "Tela cheia" usa a API nativa do navegador — Esc sai mesmo com o foco dentro da aplicação.
+ */
+export function AppFrame({ appId, name, icon, departmentName, src, origin, openId, simulate = false }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const bridgeRef = useRef<ReturnType<typeof createSessionBridge> | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -48,6 +60,8 @@ export function AppFrame({ appId, name, src, origin, openId, simulate = false }:
   const [readySeen, setReadySeen] = useState(false);
   const [slow, setSlow] = useState(false);
   const [frameKey, setFrameKey] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [canFullscreen, setCanFullscreen] = useState(false);
 
   // Registro idempotente da abertura (mesmo openId em remontagens e no StrictMode).
   useEffect(() => {
@@ -97,55 +111,106 @@ export function AppFrame({ appId, name, src, origin, openId, simulate = false }:
     return () => window.clearTimeout(t);
   }, [loaded, readySeen, appId, simulate]);
 
+  useEffect(() => {
+    const sync = () => setFullscreen(document.fullscreenElement === rootRef.current);
+    // Detectado no cliente: alguns navegadores (ex.: Safari no iPhone) não oferecem tela cheia para elementos.
+    queueMicrotask(() => setCanFullscreen(typeof document.documentElement.requestFullscreen === "function"));
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await rootRef.current?.requestFullscreen();
+    } catch {
+      /* navegador recusou: segue na moldura normal */
+    }
+  }
+
   if (denied) {
     return (
-      <ErrorState
-        title="Acesso não disponível"
-        action={
-          <ButtonLink href="/" variant="secondary">
-            Voltar ao catálogo
-          </ButtonLink>
-        }
-      >
-        {denied}
-      </ErrorState>
+      <div className="p-4 sm:p-6">
+        <ErrorState
+          title="Acesso não disponível"
+          action={
+            <ButtonLink href="/" variant="secondary">
+              Voltar ao catálogo
+            </ButtonLink>
+          }
+        >
+          {denied}
+        </ErrorState>
+      </div>
     );
   }
 
-  const status = statusText(outcome, loaded);
+  const status = statusText(outcome, loaded, name);
   return (
-    <section aria-label={`Aplicação ${name}`} className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-card)] border border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-5">
-        <div className="min-w-0">
-          <h2 className="font-semibold">Área da aplicação integrada</h2>
-          <p className="text-sm text-muted" aria-live="polite">
-            {status ?? `Carregando ${name}…`}
-          </p>
+    <div ref={rootRef} className="flex h-[calc(100dvh-4rem)] min-h-[24rem] flex-col bg-surface">
+      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-border px-2 sm:gap-2 sm:px-3">
+        <Link href="/" className={toolButton} aria-label="Voltar ao catálogo" title="Voltar ao catálogo">
+          <ArrowLeft aria-hidden className="size-4" />
+          <span className="hidden lg:inline">Catálogo</span>
+        </Link>
+        <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
+        {icon}
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h1 className="truncate text-[15px] font-semibold">{name}</h1>
+          {departmentName ? <span className="hidden truncate text-sm text-muted md:inline">· {departmentName}</span> : null}
         </div>
-        <Button
-          variant="ghost"
-          className="shrink-0"
+        <p className="sr-only" aria-live="polite">
+          {status}
+        </p>
+        <span className="hidden max-w-[22rem] truncate text-xs text-muted xl:inline" title={status}>
+          {status}
+        </span>
+        {slow ? (
+          <details className="relative">
+            <summary
+              className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-full bg-warning-bg px-3 text-xs font-medium [&::-webkit-details-marker]:hidden"
+              aria-label="A aplicação não sinalizou prontidão — ver detalhes"
+            >
+              <TriangleAlert aria-hidden className="size-4" />
+              <span className="hidden sm:inline">Sem sinal da aplicação</span>
+            </summary>
+            <div className="absolute right-0 top-full z-30 mt-2 w-80 rounded-[var(--radius-card)] border border-border bg-surface p-4 text-sm shadow-lg">
+              A aplicação ainda não sinalizou que está pronta. Se a área estiver em branco ou pedir login, ela pode estar bloqueando
+              a exibição dentro do hub (X-Frame-Options/CSP), não ter o listener de sessão ou aceitar sessão só de outro endereço do
+              hub. O caso foi registrado para a equipe de integração.
+            </div>
+          </details>
+        ) : null}
+        <button
+          type="button"
+          className={toolButton}
           onClick={() => {
             setLoaded(false);
             setReadySeen(false);
             setSlow(false);
             setFrameKey((k) => k + 1);
           }}
+          aria-label="Recarregar aplicação"
+          title="Recarregar aplicação"
         >
           <RotateCw aria-hidden className="size-4" />
-          Recarregar
-        </Button>
+          <span className="hidden lg:inline">Recarregar</span>
+        </button>
+        {canFullscreen ? (
+          <button
+            type="button"
+            className={toolButton}
+            onClick={() => void toggleFullscreen()}
+            aria-pressed={fullscreen}
+            aria-label={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia"}
+            title={fullscreen ? "Sair da tela cheia (Esc)" : "Tela cheia"}
+          >
+            {fullscreen ? <Minimize2 aria-hidden className="size-4" /> : <Maximize2 aria-hidden className="size-4" />}
+            <span className="hidden lg:inline">{fullscreen ? "Sair da tela cheia" : "Tela cheia"}</span>
+          </button>
+        ) : null}
       </div>
-      {slow ? (
-        <div className="border-b border-border p-3">
-          <Notice tone="warning">
-            A aplicação ainda não sinalizou que está pronta. Se a área abaixo estiver em branco, ela pode estar bloqueando a
-            exibição dentro do hub (X-Frame-Options ou CSP frame-ancestors) ou não ter o listener de sessão. O caso foi registrado
-            para a equipe de integração.
-          </Notice>
-        </div>
-      ) : null}
-      <div className="relative min-h-[28rem] flex-1 overflow-hidden rounded-b-[var(--radius-card)]">
+      <div className="relative min-h-0 flex-1">
         {!loaded ? (
           <div className="absolute inset-0 bg-surface">
             <LoadingState label={`Carregando ${name}…`} />
@@ -156,7 +221,8 @@ export function AppFrame({ appId, name, src, origin, openId, simulate = false }:
           ref={iframeRef}
           src={src}
           title={name}
-          className="absolute inset-0 size-full"
+          className="absolute inset-0 size-full border-0"
+          allow="fullscreen"
           // Sem allow-top-navigation: a aplicação não pode navegar a janela do hub.
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
           referrerPolicy="strict-origin-when-cross-origin"
@@ -166,6 +232,6 @@ export function AppFrame({ appId, name, src, origin, openId, simulate = false }:
           }}
         />
       </div>
-    </section>
+    </div>
   );
 }

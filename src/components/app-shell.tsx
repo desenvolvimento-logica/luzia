@@ -4,6 +4,7 @@ import { navGroups } from "@/lib/navigation";
 import type { ThemePreference } from "@/lib/theme";
 import type { AccountSummary } from "./shell/account";
 import { BreadcrumbProvider } from "./shell/breadcrumbs";
+import { MainArea } from "./shell/main-area";
 import { Sidebar } from "./shell/sidebar";
 import { Topbar } from "./shell/topbar";
 
@@ -46,9 +47,7 @@ export function AppShell({
         <Sidebar groups={groups} account={account} initialCollapsed={menuCollapsed} pathnameOverride={pathnameOverride} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar groups={groups} account={account} theme={theme} hasRecentNews={hasRecentNews} pathnameOverride={pathnameOverride} />
-          <main id="conteudo" className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-            {children}
-          </main>
+          <MainArea pathnameOverride={pathnameOverride}>{children}</MainArea>
         </div>
       </div>
     </BreadcrumbProvider>

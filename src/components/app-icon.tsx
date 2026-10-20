@@ -2,6 +2,7 @@ import { AppWindow } from "lucide-react";
 import { parseIcon } from "@/lib/security/icon";
 
 const SIZES = {
+  xs: { tile: "size-7 text-base rounded-[6px]", cover: "w-6", icon: "size-4" },
   sm: { tile: "size-10 text-xl rounded-[8px]", cover: "w-9", icon: "size-5" },
   md: { tile: "size-14 text-3xl rounded-[10px]", cover: "w-12", icon: "size-6" },
   lg: { tile: "size-16 text-4xl rounded-[12px]", cover: "w-14", icon: "size-7" },
