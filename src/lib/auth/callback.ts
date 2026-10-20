@@ -1,12 +1,13 @@
 // Lógica do callback OAuth isolada do Next para ser testável (tests/unit/auth-callback.test.ts).
 import { safeNextPath } from "../security/redirect";
 
-export type LoginErrorCode = "cancelado" | "indisponivel" | "nao_autorizado" | "callback" | "configuracao" | "sessao";
+export type LoginErrorCode = "cancelado" | "indisponivel" | "nao_autorizado" | "nao_sincronizado" | "callback" | "configuracao" | "sessao";
 
 export const LOGIN_ERROR_MESSAGES: Record<LoginErrorCode, string> = {
   cancelado: "O login foi cancelado. Você pode tentar novamente quando quiser.",
   indisponivel: "O login está indisponível no momento. Tente novamente em alguns minutos.",
   nao_autorizado: "Esta conta não está autorizada. Entre com sua conta Microsoft corporativa do escritório.",
+  nao_sincronizado: "Seu cadastro ainda não chegou ao novo Luz.IA. Use o hub atual ou procure a administração.",
   callback: "O retorno do login é inválido ou expirou. Inicie o login novamente.",
   configuracao: "O hub está sem configuração de autenticação neste ambiente.",
   sessao: "Sua sessão terminou. Entre novamente.",
@@ -29,6 +30,7 @@ const DENY_HINTS = new Set(["luzia_foreign_account", "luzia_identity_conflict", 
 export function classifyProvisionError(err: { hint?: string | null; code?: string | null }): LoginErrorCode {
   if (err.hint && DENY_HINTS.has(err.hint)) return "nao_autorizado";
   if (err.hint === "luzia_tenant_not_configured") return "configuracao";
+  if (err.hint === "luzia_not_synced") return "nao_sincronizado";
   return "indisponivel";
 }
 

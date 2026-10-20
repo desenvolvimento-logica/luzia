@@ -7,7 +7,7 @@ import { publicSupabaseEnv } from "../env";
  * resolver o escopo autorizado (src/lib/activities/scope.ts). Retorna null se a chave não estiver configurada.
  */
 export function serviceRoleSupabase(): SupabaseClient | null {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY;
   if (!key) return null;
   const { url } = publicSupabaseEnv();
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });

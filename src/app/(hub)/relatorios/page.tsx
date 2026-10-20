@@ -4,7 +4,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { EmptyState, Notice } from "@/components/ui/states";
 import { loadAccessReport, loadFilterOptions } from "@/features/reports/queries";
 import { requirePage } from "@/lib/auth/session";
-import { buildQuery, parseOptionalId, parsePage, parsePageSize } from "@/lib/reports/pagination";
+import { buildQuery, parseOptionalId, parseOptionalUuid, parsePage, parsePageSize } from "@/lib/reports/pagination";
 import { formatDateTime, resolvePeriod } from "@/lib/reports/period";
 import { ReportFiltersForm } from "./filters";
 import { ReportTabs } from "./tabs";
@@ -18,7 +18,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/relatori
   const filters = {
     from: period.from,
     to: period.to,
-    appId: parseOptionalId(sp.app),
+    appId: parseOptionalUuid(sp.app),
     userId: parseOptionalId(sp.colaborador),
     dptoId: parseOptionalId(sp.dpto),
   };
@@ -26,7 +26,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/relatori
   const pageSize = parsePageSize(sp.tamanho);
   const [report, options] = await Promise.all([loadAccessReport(supabase, filters, page, pageSize), loadFilterOptions(supabase)]);
   const { metrics, rows, total } = report;
-  const maxTop = Math.max(1, ...metrics.top_apps.map((a) => Number(a.total)));
+  const maxTop = Math.max(1, ...metrics.top_applications.map((a) => Number(a.total)));
   const base = {
     de: filters.from,
     ate: filters.to,
@@ -58,7 +58,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/relatori
         </div>
         <div className="rounded-lg border border-border bg-surface p-4">
           <p className="text-sm text-muted">Colaboradores distintos com acesso</p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums">{Number(metrics.distinct_users).toLocaleString("pt-BR")}</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums">{Number(metrics.distinct_collaborators).toLocaleString("pt-BR")}</p>
         </div>
       </section>
 
@@ -68,14 +68,14 @@ export default async function ReportsPage({ searchParams }: PageProps<"/relatori
         </div>
         <div className="rounded-lg border border-border bg-surface p-4">
           <h2 className="mb-3 text-sm font-medium">Aplicações mais abertas</h2>
-          {metrics.top_apps.length === 0 ? (
+          {metrics.top_applications.length === 0 ? (
             <p className="text-sm text-muted">Sem aberturas no período.</p>
           ) : (
             <ol className="flex flex-col gap-3">
-              {metrics.top_apps.map((a) => (
-                <li key={a.app_id}>
+              {metrics.top_applications.map((a) => (
+                <li key={a.application_id}>
                   <div className="flex justify-between gap-2 text-sm">
-                    <span className="truncate">{a.app_name ?? `Aplicação ${a.app_id}`}</span>
+                    <span className="truncate">{a.name ?? "Aplicação removida"}</span>
                     <span className="tabular-nums">{Number(a.total).toLocaleString("pt-BR")}</span>
                   </div>
                   <div aria-hidden className="mt-1 h-2 rounded-full bg-surface-2">
@@ -107,11 +107,11 @@ export default async function ReportsPage({ searchParams }: PageProps<"/relatori
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.log_id} className="border-t border-border">
+                  <tr key={r.event_id} className="border-t border-border">
                     <td className="whitespace-nowrap px-3 py-2 tabular-nums">{formatDateTime(r.opened_at)}</td>
-                    <td className="px-3 py-2">{r.user_name}</td>
-                    <td className="px-3 py-2">{r.dpto_name ?? "—"}</td>
-                    <td className="px-3 py-2">{r.app_name ?? `Aplicação ${r.app_id}`}</td>
+                    <td className="px-3 py-2">{r.collaborator_name}</td>
+                    <td className="px-3 py-2">{r.department_name ?? "—"}</td>
+                    <td className="px-3 py-2">{r.application_name ?? "Aplicação removida"}</td>
                   </tr>
                 ))}
               </tbody>

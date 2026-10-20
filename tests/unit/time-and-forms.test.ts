@@ -46,35 +46,37 @@ describe("validação dos formulários administrativos", () => {
     supabaseUrl: "https://projeto.supabase.exemplo.test",
     iconBucket: "app-icons",
   };
-  const base = { app_name: "Portal", app_description: "", app_url: "https://geral.exemplo.test/", app_icon: "🌐", app_status: "on" };
+  const base = { name: "Portal", description: "", url: "https://geral.exemplo.test/", icon: "🌐", active: "on" };
 
   it("audiência selecionada exige departamento; 'todos' descarta seleção", () => {
     const s = applicationSchema(ctx);
-    expect(s.safeParse({ ...base, audience: "selecionados", dpto_ids: [] }).success).toBe(false);
-    const ok = s.parse({ ...base, audience: "todos", dpto_ids: ["2"] });
-    expect(ok.dpto_ids).toEqual([]);
-    expect(ok.app_status).toBe(true);
-    expect(s.parse({ ...base, audience: "selecionados", dpto_ids: ["2", "3"] }).dpto_ids).toEqual([2, 3]);
+    expect(s.safeParse({ ...base, audience: "selected_departments", department_ids: [] }).success).toBe(false);
+    const ok = s.parse({ ...base, audience: "all_departments", department_ids: ["2"] });
+    expect(ok.department_ids).toEqual([]);
+    expect(ok.active).toBe(true);
+    expect(ok.id).toBeNull();
+    expect(s.parse({ ...base, audience: "selected_departments", department_ids: ["2", "3"] }).department_ids).toEqual([2, 3]);
+    expect(s.safeParse({ ...base, id: "não-é-uuid", audience: "all_departments" }).success).toBe(false);
   });
 
   it("URL fora da lista e ícone arbitrário são recusados", () => {
-    const s = applicationSchema(ctx);
-    const r = s.safeParse({ ...base, app_url: "https://outra.exemplo.test/", app_icon: "https://evil.example/x.png", audience: "todos" });
+    const r = applicationSchema(ctx).safeParse({ ...base, url: "https://outra.exemplo.test/", icon: "https://evil.example/x.png", audience: "all_departments" });
     expect(r.success).toBe(false);
     const paths = r.success ? [] : r.error.issues.map((i) => i.path[0]);
-    expect(paths).toEqual(expect.arrayContaining(["app_url", "app_icon"]));
+    expect(paths).toEqual(expect.arrayContaining(["url", "icon"]));
   });
 
   it("formulário de colaborador não aceita identidade nem e-mail", () => {
-    const parsed = collaboratorSchema.parse({ user_id: "1", user_dpto: "2", user_role: "lider", access_status: "ativo", user_email: "x@y", auth_user_id: "z" });
-    expect(parsed).toEqual({ user_id: 1, user_dpto: 2, user_role: "lider", is_admin: false, access_status: "ativo" });
-    expect(collaboratorSchema.safeParse({ user_id: "1", user_dpto: "2", user_role: "presidente", access_status: "ativo" }).success).toBe(false);
+    const parsed = collaboratorSchema.parse({ id: "1", department_id: "2", role: "lider", access_status: "active", email: "x@y", auth_user_id: "z" });
+    expect(parsed).toEqual({ id: 1, department_id: 2, role: "lider", is_admin: false, access_status: "active" });
+    expect(collaboratorSchema.safeParse({ id: "1", department_id: "2", role: "presidente", access_status: "active" }).success).toBe(false);
+    expect(collaboratorSchema.safeParse({ id: "1", department_id: "2", role: "lider", access_status: "ativo" }).success).toBe(false);
   });
 
   it("novidade converte horário de Brasília para UTC", () => {
-    const n = noteSchema.parse({ note_title: "T", note_body: "<script>x</script>", note_version: "", dt_publish: "2026-10-20T09:00" });
-    expect(n.dt_publish).toBe("2026-10-20T12:00:00.000Z");
-    expect(n.note_body).toBe("<script>x</script>"); // armazenado como texto; a interface nunca interpreta HTML
-    expect(noteSchema.safeParse({ note_title: "T", note_body: "x", note_version: "", dt_publish: "ontem" }).success).toBe(false);
+    const n = noteSchema.parse({ title: "T", body: "<script>x</script>", version: "", published_at: "2026-10-20T09:00" });
+    expect(n.published_at).toBe("2026-10-20T12:00:00.000Z");
+    expect(n.body).toBe("<script>x</script>"); // armazenado como texto; a interface nunca interpreta HTML
+    expect(noteSchema.safeParse({ title: "T", body: "x", version: "", published_at: "ontem" }).success).toBe(false);
   });
 });

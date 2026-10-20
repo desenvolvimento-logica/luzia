@@ -1,14 +1,14 @@
 // AC-15: garante que a chave administrativa não chega ao bundle do navegador.
-// Uso: construir com SUPABASE_SERVICE_ROLE_KEY definido como um valor-canário SINTÉTICO e rodar este script.
-//   PowerShell: $env:SUPABASE_SERVICE_ROLE_KEY="luzia-canario-nao-e-segredo"; npm run build; npm run check:bundle
-//   Git Bash:   SUPABASE_SERVICE_ROLE_KEY=luzia-canario-nao-e-segredo npm run build && npm run check:bundle
+// Uso: construir com SUPABASE_SECRET_KEY definido como um valor-canário SINTÉTICO e rodar este script.
+//   PowerShell: $env:SUPABASE_SECRET_KEY="luzia-canario-nao-e-segredo"; npm run build; npm run check:bundle
+//   Git Bash:   SUPABASE_SECRET_KEY=luzia-canario-nao-e-segredo npm run build && npm run check:bundle
 // Nunca rode com a chave real exportada no terminal: o objetivo é provar ausência, não manipular o segredo.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..", ".next", "static");
 const canary = process.env.LUZIA_BUNDLE_CANARY || "luzia-canario-nao-e-segredo";
-const forbidden = [canary, "SUPABASE_SERVICE_ROLE_KEY", "serviceRoleSupabase", "service_role"];
+const forbidden = [canary, "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "serviceRoleSupabase", "service_role"];
 
 function walk(dir) {
   return readdirSync(dir).flatMap((f) => {

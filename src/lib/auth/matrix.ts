@@ -1,5 +1,5 @@
-// Matriz de autorização do hub. A aplicação efetiva fica no banco (private.visible_user_ids,
-// private.can_open_app e políticas RLS); este módulo espelha as mesmas regras para a interface
+// Matriz de autorização do hub. A aplicação efetiva fica no banco (private.luzia_visible_collaborator_ids,
+// private.luzia_can_open_application e políticas RLS); este módulo espelha as mesmas regras para a interface
 // e para validação antecipada no servidor. tests/db/authorization.test.ts compara os dois.
 
 export const CARGOS = ["usuario", "lider", "coordenador", "gerente", "diretor"] as const;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Notice } from "@/components/ui/states";
 import { requirePage } from "@/lib/auth/session";
 
 const LINKS = [
@@ -12,7 +13,7 @@ const LINKS = [
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // Esconder o menu não é controle de acesso: cada página e cada ação revalidam, e o banco também.
-  await requirePage("admin");
+  const { user } = await requirePage("admin");
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label="Administração" className="flex flex-wrap gap-2 border-b border-border pb-3">
@@ -22,6 +23,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </Link>
         ))}
       </nav>
+      {user.adminReadOnly ? (
+        <Notice tone="warning">
+          <strong>Transição em andamento:</strong> os cadastros ainda são mantidos no hub antigo e copiados para cá. Esta área
+          está em modo somente leitura até o corte.
+        </Notice>
+      ) : null}
       <div>{children}</div>
     </div>
   );

@@ -1,76 +1,87 @@
-// Tipos escritos à mão a partir de supabase/dev/01_legacy_baseline.sql + supabase/migrations.
-// Substituir por `supabase gen types typescript` quando houver acesso ao projeto isolado (X-01/X-02).
+// Tipos escritos à mão a partir de supabase/migrations/20261020100000_luzia_foundation.sql.
+// Substituir por `supabase gen types typescript` (filtrando luzia_) quando houver acesso ao projeto (X-01/X-02).
 
-type Table<Row, Required extends keyof Row = never> = {
+type Table<Row> = {
   Row: Row;
-  Insert: Partial<Row> & Pick<Row, Required>;
+  Insert: Partial<Row>;
   Update: Partial<Row>;
   Relationships: [];
 };
 
 export type DbCargo = "usuario" | "lider" | "coordenador" | "gerente" | "diretor";
+export type DbAccessStatus = "active" | "inactive";
+export type DbDepartmentKind = "regular" | "provisioning";
+export type DbAudience = "all_departments" | "selected_departments";
+export type DbPhase = "coexistence" | "primary";
 
-export type DptoRow = {
-  dpto_id: number;
-  dpto_name: string;
-  dpto_kind: "normal" | "provisionamento";
-  dt_create: string;
-  user_create: string | null;
+export type DepartmentRow = {
+  id: number;
+  name: string;
+  kind: DbDepartmentKind;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
 };
 
-export type UserRow = {
-  user_id: number;
+export type CollaboratorRow = {
+  id: number;
   auth_user_id: string | null;
-  user_name: string;
-  user_email: string;
-  user_dpto: number | null;
-  user_role: DbCargo;
+  name: string;
+  email: string;
+  department_id: number;
+  role: DbCargo;
   is_admin: boolean;
-  access_status: "ativo" | "desativado";
+  access_status: DbAccessStatus;
   status_changed_at: string | null;
-  dt_create: string;
-  user_create: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ApplicationRow = {
-  app_id: number;
-  app_name: string;
-  app_description: string | null;
-  app_url: string;
-  app_icon: string | null;
-  app_status: boolean;
-  audience: "todos" | "selecionados";
-  dt_created: string;
-  user_created: string | null;
+  id: string;
+  legacy_app_id: number | null;
+  name: string;
+  description: string | null;
+  url: string;
+  icon: string | null;
+  active: boolean;
+  audience: DbAudience;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
 };
 
-export type ApplicationDptoRow = {
-  app_id: number;
-  dpto_id: number;
+export type ApplicationDepartmentRow = {
+  application_id: string;
+  department_id: number;
+  created_at: string;
 };
 
-export type AccessLogRow = {
-  log_id: number;
-  user_id: number;
-  app_id: number;
-  datetime: string;
-  open_id: string | null;
+export type AccessEventRow = {
+  id: number;
+  open_id: string;
+  collaborator_id: number;
+  application_id: string;
+  opened_at: string;
 };
 
-export type PatchNoteRow = {
-  note_id: number;
-  note_title: string;
-  note_body: string;
-  note_version: string | null;
-  dt_publish: string;
-  user_create: string | null;
+export type NewsRow = {
+  id: string;
+  title: string;
+  body: string;
+  version: string | null;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
 };
 
-export type AdminAuditRow = {
-  audit_id: number;
+export type AuditEventRow = {
+  id: number;
   created_at: string;
   actor_auth_id: string | null;
-  actor_user_id: number | null;
+  actor_collaborator_id: number | null;
   action: string;
   entity: string;
   entity_id: string;
@@ -80,77 +91,101 @@ export type AdminAuditRow = {
 
 export type ReportMetrics = {
   total_opens: number;
-  distinct_users: number;
-  top_apps: { app_id: number; app_name: string | null; total: number }[];
+  distinct_collaborators: number;
+  top_applications: { application_id: string; name: string | null; total: number }[];
   daily: { day: string; total: number }[];
 };
 
 export type ReportPageRow = {
-  log_id: number;
+  event_id: number;
   opened_at: string;
-  user_id: number;
-  user_name: string;
-  dpto_id: number | null;
-  dpto_name: string | null;
-  app_id: number;
-  app_name: string | null;
+  collaborator_id: number;
+  collaborator_name: string;
+  department_id: number | null;
+  department_name: string | null;
+  application_id: string;
+  application_name: string | null;
   total_count: number;
+};
+
+export type MyProfile = {
+  collaborator_id: number;
+  name: string;
+  email: string;
+  role: DbCargo;
+  is_admin: boolean;
+  access_status: DbAccessStatus;
+  department_id: number | null;
+  department_name: string | null;
+  department_kind: DbDepartmentKind | null;
+  phase: DbPhase;
 };
 
 type ReportFilters = {
   p_from: string;
   p_to: string;
-  p_app_id?: number | null;
-  p_user_id?: number | null;
-  p_dpto_id?: number | null;
+  p_application_id?: string | null;
+  p_collaborator_id?: number | null;
+  p_department_id?: number | null;
 };
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "12" };
   public: {
     Tables: {
-      dpto: Table<DptoRow, "dpto_name">;
-      users: Table<UserRow, "user_name" | "user_email">;
-      applications: Table<ApplicationRow, "app_name" | "app_url">;
-      applications_dpto: Table<ApplicationDptoRow, "app_id" | "dpto_id">;
-      access_log: Table<AccessLogRow, "user_id" | "app_id">;
-      patch_notes: Table<PatchNoteRow, "note_title" | "note_body">;
-      admin_audit: Table<AdminAuditRow>;
+      luzia_departments: Table<DepartmentRow>;
+      luzia_collaborators: Table<CollaboratorRow>;
+      luzia_applications: Table<ApplicationRow>;
+      luzia_application_departments: Table<ApplicationDepartmentRow>;
+      luzia_access_events: Table<AccessEventRow>;
+      luzia_news: Table<NewsRow>;
+      luzia_audit_events: Table<AuditEventRow>;
     };
     Views: { [_ in never]: never };
     Functions: {
-      luzia_provision_me: {
-        Args: Record<string, never>;
-        Returns: { user_id: number; access_status: string; provisioned: boolean; linked: boolean }[];
+      luzia_provision_me: { Args: Record<string, never>; Returns: { collaborator_id: number; access_status: string; outcome: string }[] };
+      luzia_my_profile: { Args: Record<string, never>; Returns: MyProfile[] };
+      luzia_can_open: { Args: { p_application_id: string }; Returns: boolean };
+      luzia_register_open: { Args: { p_application_id: string; p_open_id: string }; Returns: number };
+      luzia_admin_save_department: { Args: { p_id: number | null; p_name: string }; Returns: number };
+      luzia_admin_set_department_active: { Args: { p_id: number; p_active: boolean }; Returns: undefined };
+      luzia_admin_update_collaborator: {
+        Args: { p_id: number; p_department_id: number; p_role: DbCargo; p_is_admin: boolean; p_access_status: DbAccessStatus };
+        Returns: undefined;
       };
-      luzia_register_open: { Args: { p_app_id: number; p_open_id: string }; Returns: number };
-      luzia_can_open: { Args: { p_app_id: number }; Returns: boolean };
-      admin_save_application: {
+      luzia_admin_change_identity: { Args: { p_id: number; p_new_auth_user_id: string | null; p_new_email: string; p_reason: string }; Returns: undefined };
+      luzia_admin_save_application: {
         Args: {
-          p_app_id: number | null;
+          p_id: string | null;
           p_name: string;
           p_description: string | null;
           p_url: string;
           p_icon: string | null;
-          p_status: boolean;
-          p_audience: "todos" | "selecionados";
-          p_dpto_ids: number[];
+          p_active: boolean;
+          p_audience: DbAudience;
+          p_department_ids: number[];
         };
-        Returns: number;
+        Returns: string;
       };
-      admin_change_identity: {
-        Args: { p_user_id: number; p_new_auth_user_id: string | null; p_new_email: string; p_reason: string };
-        Returns: undefined;
+      luzia_admin_save_news: {
+        Args: { p_id: string | null; p_title: string; p_body: string; p_version: string | null; p_published_at: string };
+        Returns: string;
       };
-      report_scope_users: {
+      luzia_admin_adopt_legacy_collaborators: { Args: Record<string, never>; Returns: number };
+      luzia_report_scope: {
         Args: Record<string, never>;
-        Returns: { user_id: number; user_name: string; user_email: string; user_dpto: number | null; user_role: DbCargo }[];
+        Returns: { collaborator_id: number; name: string; email: string; department_id: number | null; role: DbCargo }[];
       };
-      report_app_names: { Args: Record<string, never>; Returns: { app_id: number; app_name: string }[] };
-      report_access_metrics: { Args: ReportFilters; Returns: ReportMetrics };
-      report_access_page: { Args: ReportFilters & { p_limit: number; p_offset: number }; Returns: ReportPageRow[] };
+      luzia_report_application_names: { Args: Record<string, never>; Returns: { application_id: string; name: string }[] };
+      luzia_report_access_metrics: { Args: ReportFilters; Returns: ReportMetrics };
+      luzia_report_access_page: { Args: ReportFilters & { p_limit: number; p_offset: number }; Returns: ReportPageRow[] };
     };
-    Enums: { [_ in never]: never };
+    Enums: {
+      luzia_hierarchy_role: DbCargo;
+      luzia_access_status: DbAccessStatus;
+      luzia_department_kind: DbDepartmentKind;
+      luzia_audience: DbAudience;
+    };
     CompositeTypes: { [_ in never]: never };
   };
 };
