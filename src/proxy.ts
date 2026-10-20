@@ -10,6 +10,10 @@ function isPublic(pathname: string) {
 // Renova cookies de sessão e redireciona visitantes sem sessão. Autorização de dados não acontece aqui:
 // páginas, ações e RLS revalidam o colaborador em cada operação.
 export async function proxy(request: NextRequest) {
+  // Pré-visualização de interface (dados sintéticos, sem banco): só quando explicitamente ligada.
+  if (process.env.LUZIA_UI_PREVIEW === "true" && request.nextUrl.pathname.startsWith("/dev/preview/")) {
+    return NextResponse.next();
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !anonKey) {

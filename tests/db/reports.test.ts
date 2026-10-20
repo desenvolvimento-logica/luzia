@@ -9,6 +9,7 @@ const TO = "2026-10-15";
 interface Metrics {
   total_opens: number;
   distinct_collaborators: number;
+  distinct_applications: number;
   top_applications: { application_id: string; name: string; total: number }[];
   daily: { day: string; total: number }[];
 }
@@ -51,8 +52,8 @@ const page = (email: string, limit: number, offset: number, from = FROM, to = TO
   );
 
 async function reference(where: string) {
-  const { rows } = await db.query<{ total: number; people: number }>(
-    `select count(*)::int total, count(distinct e.collaborator_id)::int people
+  const { rows } = await db.query<{ total: number; people: number; apps: number }>(
+    `select count(*)::int total, count(distinct e.collaborator_id)::int people, count(distinct e.application_id)::int apps
        from public.luzia_access_events e join public.luzia_collaborators c on c.id = e.collaborator_id
       where e.opened_at >= ('${FROM}'::timestamp at time zone 'America/Sao_Paulo')
         and e.opened_at < (('${TO}'::date + 1)::timestamp at time zone 'America/Sao_Paulo') and ${where}`,
@@ -67,6 +68,7 @@ describe("agregados sobre todo o período (AC-10)", () => {
     const m = await metrics(E.gerente);
     expect(m.total_opens).toBe(ref.total);
     expect(m.distinct_collaborators).toBe(ref.people);
+    expect(m.distinct_applications).toBe(ref.apps);
     expect(m.daily.reduce((s, d) => s + Number(d.total), 0)).toBe(ref.total);
     expect(m.daily).toHaveLength(76);
     expect(m.top_applications.reduce((s, a) => s + Number(a.total), 0)).toBe(ref.total);
@@ -81,6 +83,39 @@ describe("agregados sobre todo o período (AC-10)", () => {
   it("filtros fora do escopo retornam vazio em vez de vazar", async () => {
     expect((await metrics(E.coordTrib, FROM, TO, null, null, await departmentId(db, "Fiscal"))).total_opens).toBe(0);
     expect((await metrics(E.liderFiscal, FROM, TO, null, await collaboratorId(db, E.gerente))).total_opens).toBe(0);
+  });
+});
+
+describe("ordenação do histórico", () => {
+  const sorted = (email: string, sort: string, dir: string, limit = 100) =>
+    asUser(db, email, async (tx) =>
+      (await tx.query<{ event_id: number; opened_at: Date; collaborator_name: string; application_name: string; total_count: number }>(
+        "select * from public.luzia_report_access_page($1, $2, null, null, null, $3, 0, $4, $5)", [FROM, TO, limit, sort, dir],
+      )).rows,
+    );
+
+  it("ordena por colaborador e aplicação nos dois sentidos, com desempate estável", async () => {
+    const asc = (await sorted(E.diretor, "collaborator", "asc")).map((r) => r.collaborator_name.toLowerCase());
+    expect(asc).toEqual([...asc].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
+    const desc = (await sorted(E.diretor, "application", "desc")).map((r) => (r.application_name ?? "").toLowerCase());
+    expect(desc).toEqual([...desc].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0)));
+  });
+
+  it("ordena por data ascendente; o padrão continua data descendente", async () => {
+    const asc = (await sorted(E.diretor, "opened_at", "asc")).map((r) => new Date(r.opened_at).getTime());
+    expect(asc).toEqual([...asc].sort((a, b) => a - b));
+    const def = await asUser(db, E.diretor, async (tx) =>
+      (await tx.query<{ opened_at: Date }>("select * from public.luzia_report_access_page($1, $2, null, null, null, 50, 0)", [FROM, TO])).rows.map((r) => new Date(r.opened_at).getTime()),
+    );
+    expect(def).toEqual([...def].sort((a, b) => b - a));
+  });
+
+  it("ordenação não altera total nem escopo e rejeita valores inválidos", async () => {
+    const a = await sorted(E.liderFiscal, "department", "asc", 25);
+    const b = await sorted(E.liderFiscal, "opened_at", "desc", 25);
+    expect(Number(a[0]?.total_count)).toBe(Number(b[0]?.total_count));
+    await expectSqlError(sorted(E.diretor, "user_email", "asc"), /Ordenação inválida/);
+    await expectSqlError(sorted(E.diretor, "collaborator", "sideways"), /Ordenação inválida/);
   });
 });
 

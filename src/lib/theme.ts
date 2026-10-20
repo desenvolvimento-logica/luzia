@@ -1,4 +1,5 @@
 export const THEME_COOKIE = "luzia-tema";
+export const MENU_COOKIE = "luzia-menu";
 export type ThemePreference = "claro" | "escuro" | "sistema";
 
 export function parseTheme(value: string | undefined | null): ThemePreference {

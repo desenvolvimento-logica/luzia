@@ -24,7 +24,7 @@ function ratio(a: string, b: string): number {
   return (x! + 0.05) / (y! + 0.05);
 }
 
-// [primeiro plano, fundo, mínimo]: 4.5 texto normal; 3 para componentes/foco/marcas gráficas.
+// [primeiro plano, fundo, mínimo]: 4.5 texto normal; 3 para contornos de controles, foco e marcas gráficas.
 const PAIRS: [string, string, number][] = [
   ["text", "bg", 4.5],
   ["text", "surface", 4.5],
@@ -34,14 +34,20 @@ const PAIRS: [string, string, number][] = [
   ["muted", "surface-2", 4.5],
   ["on-brand", "brand", 4.5],
   ["on-brand", "brand-strong", 4.5],
-  ["on-chumbo", "chumbo", 4.5],
+  ["text", "brand-soft", 4.5],
+  ["on-sidebar", "sidebar", 4.5],
+  ["on-sidebar-muted", "sidebar", 4.5],
+  ["on-sidebar", "sidebar-active", 4.5],
   ["link", "surface", 4.5],
   ["danger", "surface", 4.5],
   ["danger", "danger-bg", 4.5],
   ["success", "success-bg", 4.5],
   ["text", "warning-bg", 4.5],
+  ["control-border", "surface", 3],
+  ["control-border", "bg", 3],
   ["focus", "surface", 3],
   ["focus", "bg", 3],
+  ["brand", "sidebar", 3],
   ["chart", "surface", 3],
 ];
 

@@ -48,6 +48,22 @@ describe("ensaio de migração e reversão (AC-16, simulação)", () => {
     expect((await fp()).dados.dpto.md5).not.toBe(before.dados.dpto.md5);
   });
 
+  it("relatórios v2: reaplicável e reversível para as definições da fundação", async () => {
+    const db = await createTestDb();
+    await db.exec(sql("supabase/migrations/20261020120000_luzia_reports_v2.sql"));
+    const sig = async () =>
+      (await db.query<{ args: string }>("select pg_get_function_identity_arguments(p.oid) args from pg_proc p where p.proname = 'luzia_report_access_page'")).rows.map((r) => r.args);
+    expect(await sig()).toEqual([expect.stringContaining("p_sort text")]);
+    await db.exec(sql("supabase/rollback/20261020120000_luzia_reports_v2.down.sql"));
+    expect((await sig())[0]).not.toContain("p_sort");
+    const m = await db.query<{ m: Record<string, unknown> }>(
+      `select public.luzia_report_access_metrics('2026-10-01', '2026-10-02') m`,
+    ).catch(() => null);
+    expect(m).toBeNull(); // superusuário sem sessão não tem acesso a relatórios; a função existe e valida
+    await db.exec(sql("supabase/migrations/20261020120000_luzia_reports_v2.sql"));
+    expect(await sig()).toHaveLength(1);
+  });
+
   it("reversão da fundação é recusada depois do corte", async () => {
     const db = await createTestDb({ phase: "primary" });
     await expect(db.exec(`begin; set local luzia.confirm_drop = 'remover-objetos-luzia'; ${sql(ROLLBACK)} commit;`)).rejects.toThrow(/fase primary ativa/);

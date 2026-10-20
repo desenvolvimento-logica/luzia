@@ -1,12 +1,9 @@
 import "server-only";
 import type { HubSupabase } from "@/lib/supabase/server";
 
-export interface CatalogApp {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: string | null;
-}
+import type { CatalogApp } from "./types";
+
+export type { CatalogApp };
 
 /** Catálogo do colaborador: o RLS devolve somente aplicações que ele pode abrir (admin: todas). */
 export async function listCatalog(supabase: HubSupabase): Promise<CatalogApp[]> {

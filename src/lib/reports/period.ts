@@ -56,3 +56,10 @@ export function formatDateTime(iso: string): string {
 export function formatCivilDay(isoDate: string): string {
   return dateFmt.format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+const newsDateFmt = new Intl.DateTimeFormat("pt-BR", { timeZone: REPORT_TZ, day: "numeric", month: "short", year: "numeric" });
+
+/** "20 out 2026" no fuso de São Paulo. */
+export function formatNewsDate(iso: string): string {
+  return newsDateFmt.format(new Date(iso)).replace(/\./g, "").replace(/ de /g, " ");
+}
