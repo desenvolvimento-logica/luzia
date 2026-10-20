@@ -14,16 +14,16 @@ Ordem dos arquivos, todos aplicados manualmente no SQL Editor (nunca `supabase d
 
 ## 1. Inventário (somente leitura)
 
-Rodar o inventário e conferir antes de qualquer passo:
+Rodar o inventário (uma consulta; o resultado é uma única célula JSON) e conferir antes de qualquer passo:
 
-- seção 14: **nenhum** objeto `luzia_` existente (colisão de nomes);
-- seção 15: schema `private` existe e `authenticated` tem `USAGE` (a migração não altera o schema);
-- seções 1–2: colunas e restrições de `public.users` e `public.dpto` (a migração exige `user_create` nas duas — X-13; tipos `bigint` de `user_id`/`dpto_id`);
-- seção 13: FKs de outros sistemas para `public.users`/`public.dpto` (esperado: `gestao_cadastros_*`, `lic_profiles`); confirma por que o espelho nunca apaga linhas;
-- seção 8: chaves de `identity_data` do provedor `azure` → onde está o `tid` (a RPC aceita `tid` ou `custom_claims.tid`);
-- seção 9: `users_email_maiusculo` e e-mails repetidos ignorando maiúsculas (a importação aborta se houver repetidos);
-- seção 10: origens de `app_url` → valor de `LUZIA_APP_ALLOWED_ORIGINS`;
-- seção 7: gatilhos de `auth.users` (o hub novo não os altera).
+- `objetos_luzia_existentes`: vazio (sem colisão de nomes);
+- `schema_private`: existe e `authenticated_usage` é `true` (a migração não altera o schema);
+- `colunas_hub` e `restricoes_hub`: colunas e restrições de `public.users` e `public.dpto` (a migração exige `user_create` nas duas — X-13; tipos `bigint` de `user_id`/`dpto_id`);
+- `fks_de_outros_sistemas`: FKs de outros sistemas para as tabelas do hub (esperado: `gestao_cadastros_*`, `lic_profiles`); confirma por que o espelho nunca apaga linhas;
+- `identidades`: chaves de `identity_data` do provedor `azure` → onde está o `tid` (a RPC aceita `tid` ou `custom_claims.tid`); `quantidade_tids_distintos` deve ser 1;
+- `contagens`: `users_email_repetido_ignorando_maiusculas` deve ser 0 (senão a importação aborta); `users_por_cargo` só com os cinco cargos; `dpto_nao_atribuido` = 1;
+- `origens_app_url`: valor de `LUZIA_APP_ALLOWED_ORIGINS`;
+- `gatilhos`: os de `auth.users` e das tabelas do hub (o hub novo não os altera).
 
 Registrar divergências em `docs/decisoes.md` e ajustar a migração antes do passo 2.
 
