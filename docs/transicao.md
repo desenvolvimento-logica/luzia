@@ -8,6 +8,7 @@ Ordem dos arquivos, todos aplicados manualmente no SQL Editor (nunca `supabase d
 |---|---|---|---|
 | 1 | `supabase/inventory/inventario-somente-leitura.sql` | nada | — |
 | 2 | `supabase/migrations/20261020100000_luzia_foundation.sql` | só objetos `luzia_` | `supabase/rollback/20261020100000_luzia_foundation.down.sql` |
+| 2.1 | `supabase/migrations/20261020120000_luzia_reports_v2.sql` | só funções `public.luzia_report_*` | `supabase/rollback/20261020120000_luzia_reports_v2.down.sql` |
 | 3 | `insert into public.luzia_settings ... azure_tenant_id` + `select private.luzia_import_legacy();` | só `luzia_` | reimportar / passo 2 reverso |
 | 4 | `supabase/verification/20261020100000_luzia_foundation.check.sql` | nada | — |
 | 5 | `supabase/cutover/20261020110000_luzia_switch_to_primary.sql` | `luzia_settings`; a partir daí o espelho escreve em `public.users`/`public.dpto` | `supabase/rollback/20261020110000_luzia_switch_to_primary.down.sql` |
@@ -45,6 +46,10 @@ Durante a coexistência:
 - Reimportar sempre que o hub antigo mudar cadastros (ou logo antes do corte).
 
 Reversão da fundação (só nesta fase): executar `supabase/rollback/20261020100000_luzia_foundation.down.sql` precedido de `set local luzia.confirm_drop = 'remover-objetos-luzia'` na mesma transação. Remove apenas objetos `luzia_` (inclusive eventos e novidades criados no hub novo).
+
+### 2.1 Relatórios v2 **[aprovação]** — aplicar ANTES de publicar o visual v2
+
+`supabase/migrations/20261020120000_luzia_reports_v2.sql` (transação única): acrescenta o indicador de aplicações acessadas e a ordenação do histórico. É compatível com o frontend já publicado (parâmetros novos têm padrão), mas o frontend v2 **depende** dela: aplicar primeiro, depois fazer o merge que publica na Vercel. Reversão: `supabase/rollback/20261020120000_luzia_reports_v2.down.sql` (publicar antes um frontend que não envie `p_sort`/`p_dir`).
 
 ## 3. Validações antes do corte
 

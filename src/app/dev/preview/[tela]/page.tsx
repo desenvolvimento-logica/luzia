@@ -8,10 +8,39 @@ import {
   PREVIEW_ADMIN, PREVIEW_APPS, PREVIEW_COLLABORATOR, PREVIEW_FILTER_OPTIONS, PREVIEW_METRICS, PREVIEW_NEWS, PREVIEW_REPORT_ROWS,
 } from "@/features/preview/fixtures";
 import { ReportsView } from "@/features/reports/reports-view";
+import { AppsAdminView } from "@/features/admin/apps/apps-admin-view";
 import { previewEnabled } from "@/features/preview/gate";
 import { MENU_COOKIE, parseTheme, THEME_COOKIE } from "@/lib/theme";
 
 export const metadata = { title: "Pré-visualização", robots: { index: false } };
+
+const PREVIEW_ADMIN_APPS = [
+  ["Fisco Check", "🧾", true, "Fiscal", [2]],
+  ["Mensagens (e-CAC)", "✉️", true, "Tributário", [4]],
+  ["Boas-vindas", "🤝", true, "Tributário", [4]],
+  ["PERDCOMP", "📄", true, "Tributário", [4]],
+  ["contcheck", "📊", true, "Contábil", [3]],
+  ["CPA Tax Planner", "🧮", false, "Tributário", [4]],
+].map(([name, icon, active, label, ids], i) => {
+  const id = `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}`;
+  return {
+    id,
+    name: name as string,
+    icon: icon as string,
+    active: active as boolean,
+    audienceLabel: label as string,
+    drawer: {
+      id,
+      name: name as string,
+      description: name === "PERDCOMP" ? "Sistema para apuração e gerenciamento de créditos de PIS e COFINS (PER/DCOMP)." : null,
+      url: "https://perdcomp-pilot.lovable.app/",
+      icon: icon as string,
+      active: active as boolean,
+      audience: "selected_departments" as const,
+      departmentIds: ids as number[],
+    },
+  };
+});
 
 // Pré-visualização de interface com dados sintéticos para comparar com mockups/. Sem sessão e sem banco.
 const SCREENS: Record<string, { user: ShellUser; path: string; bare?: boolean; render: () => React.ReactNode }> = {
@@ -37,6 +66,28 @@ const SCREENS: Record<string, { user: ShellUser; path: string; bare?: boolean; r
         pageSize={25}
         sort="opened_at"
         dir="desc"
+      />
+    ),
+  },
+  "admin-aplicacoes": {
+    user: PREVIEW_ADMIN,
+    path: "/admin/aplicacoes",
+    render: () => (
+      <AppsAdminView apps={PREVIEW_ADMIN_APPS} departments={PREVIEW_FILTER_OPTIONS.dptos} allowedOrigins={["https://perdcomp-pilot.lovable.app"]} readOnly={false} editingId={null} creating={false} savedName={null} />
+    ),
+  },
+  "admin-aplicacao-editar": {
+    user: PREVIEW_ADMIN,
+    path: "/admin/aplicacoes",
+    render: () => (
+      <AppsAdminView
+        apps={PREVIEW_ADMIN_APPS}
+        departments={PREVIEW_FILTER_OPTIONS.dptos}
+        allowedOrigins={["https://perdcomp-pilot.lovable.app"]}
+        readOnly={false}
+        editingId={PREVIEW_ADMIN_APPS[3]!.id}
+        creating={false}
+        savedName={null}
       />
     ),
   },

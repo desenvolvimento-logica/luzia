@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Eye, Pencil } from "lucide-react";
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/button";
 import { SelectField, TextField } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/ui/states";
+import { Badge } from "@/components/ui/surface";
 import { CARGO_LABEL, CARGOS, isCargo } from "@/lib/auth/matrix";
 import { requirePage } from "@/lib/auth/session";
 import { buildQuery, parseOptionalId, parsePage } from "@/lib/reports/pagination";
@@ -47,7 +49,7 @@ export default async function CollaboratorsPage({ searchParams }: PageProps<"/ad
         description="Departamento, cargo, administração e estado de acesso ao hub."
         actions={user.adminReadOnly ? null : <AdoptLegacyButton />}
       />
-      <form method="get" className="mb-4 grid gap-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <form method="get" className="mb-4 grid gap-4 rounded-[var(--radius-card)] border border-border bg-surface p-4 sm:grid-cols-2 md:p-5 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
         <TextField id="q" label="Nome ou e-mail" type="search" defaultValue={q} />
         <SelectField id="dpto" label="Departamento" defaultValue={dept ?? ""}>
           <option value="">Todos</option>
@@ -71,7 +73,7 @@ export default async function CollaboratorsPage({ searchParams }: PageProps<"/ad
           <option value="inactive">Desativado</option>
         </SelectField>
         <div className="flex items-end">
-          <button type="submit" className={buttonClass("primary", "w-full")}>
+          <button type="submit" className={buttonClass("primary", "w-full px-6")}>
             Filtrar
           </button>
         </div>
@@ -79,47 +81,62 @@ export default async function CollaboratorsPage({ searchParams }: PageProps<"/ad
       {!people?.length ? (
         <EmptyState title="Nenhum colaborador encontrado" />
       ) : (
-        <div className="relative overflow-x-auto rounded-lg border border-border bg-surface">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="bg-surface-2">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-medium">Nome</th>
-                <th scope="col" className="px-3 py-2 font-medium">Departamento</th>
-                <th scope="col" className="px-3 py-2 font-medium">Cargo</th>
-                <th scope="col" className="px-3 py-2 font-medium">Estado</th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  <span className="sr-only">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {people.map((p) => (
-                <tr key={p.id} className="border-t border-border">
-                  <td className="px-3 py-2">
-                    <span className="block font-medium">{p.name}</span>
-                    <span className="block text-xs text-muted">{p.email}</span>
-                  </td>
-                  <td className="px-3 py-2">{deptName.get(p.department_id) ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    {CARGO_LABEL[p.role]}
-                    {p.is_admin ? <span className="ml-2 rounded bg-warning-bg px-1.5 py-0.5 text-xs">Admin</span> : null}
-                  </td>
-                  <td className="px-3 py-2">
-                    {p.access_status === "active" ? "Ativo" : <span className="text-danger">Desativado</span>}
-                    {!p.auth_user_id ? <span className="block text-xs text-muted">Nunca entrou</span> : null}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Link href={`/admin/colaboradores/${p.id}`} aria-label={`${user.adminReadOnly ? "Ver" : "Editar"} ${p.name}`}>
-                      {user.adminReadOnly ? "Ver" : "Editar"}
-                    </Link>
-                  </td>
+        <section aria-label="Colaboradores" className="rounded-[var(--radius-card)] border border-border bg-surface">
+          <div className="relative overflow-x-auto">
+            <table className="w-full min-w-[44rem] text-left text-sm">
+              <thead className="border-b border-border bg-surface-2 text-muted">
+                <tr>
+                  <th scope="col" className="px-5 py-3 font-medium">Nome</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Departamento</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Cargo</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Estado</th>
+                  <th scope="col" className="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {people.map((p) => (
+                  <tr key={p.id} className="border-b border-border last:border-b-0">
+                    <td className="px-5 py-3">
+                      <span className="block font-semibold">{p.name}</span>
+                      <span className="block text-xs text-muted">{p.email}</span>
+                    </td>
+                    <td className="px-5 py-3">{deptName.get(p.department_id) ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <span className="flex flex-wrap items-center gap-2">
+                        {CARGO_LABEL[p.role]}
+                        {p.is_admin ? <Badge tone="brand">Admin</Badge> : null}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {p.access_status === "active" ? (
+                        <Badge tone="success" dot>
+                          Ativo
+                        </Badge>
+                      ) : (
+                        <Badge tone="danger" dot>
+                          Desativado
+                        </Badge>
+                      )}
+                      {!p.auth_user_id ? <span className="mt-1 block text-xs text-muted">Nunca entrou</span> : null}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <Link
+                        href={`/admin/colaboradores/${p.id}`}
+                        aria-label={`${user.adminReadOnly ? "Ver" : "Editar"} ${p.name}`}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-[var(--radius-control)] px-3 text-sm font-medium text-text no-underline hover:bg-surface-2"
+                      >
+                        {user.adminReadOnly ? <Eye aria-hidden className="size-4" /> : <Pencil aria-hidden className="size-4" />}
+                        {user.adminReadOnly ? "Ver" : "Editar"}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/colaboradores${buildQuery({ ...base, pagina: p })}`} />
+        </section>
       )}
-      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/colaboradores${buildQuery({ ...base, pagina: p })}`} />
     </>
   );
 }

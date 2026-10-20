@@ -2,7 +2,10 @@
 import { mkdirSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
-const SCREENS = (process.env.SCREENS ?? "catalogo,catalogo-vazio,catalogo-admin").split(",");
+const SCREENS = (
+  process.env.SCREENS ??
+  "catalogo,catalogo-vazio,catalogo-admin,login,login-erro,relatorios,aplicacao,admin-aplicacoes,admin-aplicacao-editar"
+).split(",");
 const OUT = "test-results/visual";
 mkdirSync(OUT, { recursive: true });
 

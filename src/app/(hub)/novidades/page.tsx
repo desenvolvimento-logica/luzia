@@ -31,7 +31,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/novidades">
       ) : (
         <ol className="flex flex-col gap-4">
           {data.map((n) => (
-            <li key={n.id} className="rounded-lg border border-border bg-surface p-5">
+            <li key={n.id} className="rounded-[var(--radius-card)] border border-border bg-surface p-5">
               <article>
                 <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <h2 className="text-lg font-semibold">{n.title}</h2>
@@ -47,7 +47,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/novidades">
           ))}
         </ol>
       )}
-      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/novidades?pagina=${p}`} />
+      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/novidades?pagina=${p}`} variant="plain" />
     </>
   );
 }

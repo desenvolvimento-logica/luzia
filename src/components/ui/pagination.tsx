@@ -15,14 +15,30 @@ export function pageWindow(page: number, pages: number): (number | "…")[] {
   return out;
 }
 
-export function Pagination({ page, pageSize, total, hrefFor }: { page: number; pageSize: number; total: number; hrefFor: (page: number) => string }) {
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  hrefFor,
+  variant = "card",
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  hrefFor: (page: number) => string;
+  /** "card": rodapé de cartão com borda; "plain": solta, abaixo de uma lista. */
+  variant?: "card" | "plain";
+}) {
   if (total === 0) return null;
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   const cell = "inline-flex min-h-10 min-w-10 items-center justify-center rounded-[var(--radius-control)] px-2 text-sm no-underline";
   return (
-    <nav aria-label="Paginação" className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 md:px-6">
+    <nav
+      aria-label="Paginação"
+      className={`flex flex-wrap items-center justify-between gap-3 ${variant === "card" ? "border-t border-border px-4 py-3 md:px-6" : "pt-4"}`}
+    >
       <p className="text-sm text-muted">
         {from.toLocaleString("pt-BR")}–{to.toLocaleString("pt-BR")} de {total.toLocaleString("pt-BR")}
       </p>

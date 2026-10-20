@@ -31,7 +31,7 @@ export default async function AdminNewsPage({ searchParams }: PageProps<"/admin/
       <PageHeader title="Novidades" description="Conteúdo exibido como texto puro; HTML não é interpretado. As novidades do hub antigo não foram migradas." />
       <div className={`grid gap-8 ${user.adminReadOnly ? "" : "lg:grid-cols-[1fr_1fr]"}`}>
         {user.adminReadOnly ? null : (
-          <section aria-labelledby="form-novidade">
+          <section aria-labelledby="form-novidade" className="self-start rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6">
             <h2 id="form-novidade" className="mb-3 font-semibold">
               {editing ? "Editar novidade" : "Nova novidade"}
             </h2>
@@ -58,7 +58,7 @@ export default async function AdminNewsPage({ searchParams }: PageProps<"/admin/
           {!news?.length ? (
             <p className="text-sm text-muted">Nenhuma novidade cadastrada no hub novo.</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+            <ul className="flex flex-col divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface">
               {news.map((n) => (
                 <li key={n.id} className="flex items-center justify-between gap-3 p-3">
                   <div>
@@ -78,7 +78,7 @@ export default async function AdminNewsPage({ searchParams }: PageProps<"/admin/
               ))}
             </ul>
           )}
-          <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/novidades?pagina=${p}`} />
+          <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/novidades?pagina=${p}`} variant="plain" />
         </section>
       </div>
     </>

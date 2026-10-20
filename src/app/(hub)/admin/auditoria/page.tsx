@@ -68,37 +68,39 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
       {!rows?.length ? (
         <EmptyState title="Nenhum registro" />
       ) : (
-        <div className="relative overflow-x-auto rounded-lg border border-border bg-surface">
-          <table className="w-full min-w-[44rem] text-left text-sm">
-            <thead className="bg-surface-2">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-medium">Quando</th>
-                <th scope="col" className="px-3 py-2 font-medium">Ator</th>
-                <th scope="col" className="px-3 py-2 font-medium">Ação</th>
-                <th scope="col" className="px-3 py-2 font-medium">Entidade</th>
-                <th scope="col" className="px-3 py-2 font-medium">Alterações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-border align-top">
-                  <td className="whitespace-nowrap px-3 py-2">{formatDateTime(r.created_at)}</td>
-                  <td className="px-3 py-2">{r.actor_collaborator_id ? actorName.get(r.actor_collaborator_id) ?? `#${r.actor_collaborator_id}` : r.reason === "importacao-legado" ? "Importação do legado" : "Sistema"}</td>
-                  <td className="px-3 py-2">{ACTIONS[r.action] ?? r.action}</td>
-                  <td className="px-3 py-2">
-                    {ENTITIES[r.entity as keyof typeof ENTITIES] ?? r.entity} #{r.entity_id}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs break-all">
-                    {describe(r.changes)}
-                    {r.reason ? <span className="mt-1 block font-sans text-muted">Motivo: {r.reason}</span> : null}
-                  </td>
+        <section aria-label="Registros de auditoria" className="rounded-[var(--radius-card)] border border-border bg-surface">
+          <div className="relative overflow-x-auto">
+            <table className="w-full min-w-[44rem] text-left text-sm">
+              <thead className="border-b border-border bg-surface-2 text-muted">
+                <tr>
+                  <th scope="col" className="px-5 py-3 font-medium">Quando</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Ator</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Ação</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Entidade</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Alterações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b border-border align-top last:border-b-0">
+                    <td className="whitespace-nowrap px-5 py-3">{formatDateTime(r.created_at)}</td>
+                    <td className="px-5 py-3">{r.actor_collaborator_id ? actorName.get(r.actor_collaborator_id) ?? `#${r.actor_collaborator_id}` : r.reason === "importacao-legado" ? "Importação do legado" : "Sistema"}</td>
+                    <td className="px-5 py-3">{ACTIONS[r.action] ?? r.action}</td>
+                    <td className="px-5 py-3">
+                      {ENTITIES[r.entity as keyof typeof ENTITIES] ?? r.entity} #{r.entity_id}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-xs break-all">
+                      {describe(r.changes)}
+                      {r.reason ? <span className="mt-1 block font-sans text-muted">Motivo: {r.reason}</span> : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/auditoria${buildQuery({ entidade: entity, pagina: p })}`} />
+        </section>
       )}
-      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} hrefFor={(p) => `/admin/auditoria${buildQuery({ entidade: entity, pagina: p })}`} />
     </>
   );
 }

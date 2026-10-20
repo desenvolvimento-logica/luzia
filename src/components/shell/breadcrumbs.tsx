@@ -11,28 +11,35 @@ interface State {
   crumbs: Crumb[];
 }
 
-const BreadcrumbContext = createContext<{ state: State | null; set: (s: State) => void } | null>(null);
+// Estado e setter em contextos separados: o setter do useState é estável, então quem só escreve
+// (SetBreadcrumb) não re-renderiza nem re-executa efeitos quando a trilha muda.
+const BreadcrumbState = createContext<State | null>(null);
+const BreadcrumbSetter = createContext<((s: State) => void) | null>(null);
 
 export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [state, set] = useState<State | null>(null);
-  return <BreadcrumbContext value={{ state, set }}>{children}</BreadcrumbContext>;
+  return (
+    <BreadcrumbSetter value={set}>
+      <BreadcrumbState value={state}>{children}</BreadcrumbState>
+    </BreadcrumbSetter>
+  );
 }
 
 /** Permite a uma página refinar a trilha (ex.: nome da aplicação aberta). */
 export function SetBreadcrumb({ items }: { items: Crumb[] }) {
-  const ctx = use(BreadcrumbContext);
+  const set = use(BreadcrumbSetter);
   const pathname = usePathname();
   const key = JSON.stringify(items);
   useEffect(() => {
-    ctx?.set({ path: pathname, crumbs: JSON.parse(key) as Crumb[] });
-  }, [ctx, pathname, key]);
+    set?.({ path: pathname, crumbs: JSON.parse(key) as Crumb[] });
+  }, [set, pathname, key]);
   return null;
 }
 
 export function Breadcrumbs({ fallback }: { fallback?: Crumb[] }) {
-  const ctx = use(BreadcrumbContext);
+  const state = use(BreadcrumbState);
   const pathname = usePathname();
-  const crumbs = ctx?.state?.path === pathname ? ctx.state.crumbs : (fallback ?? defaultCrumbs(pathname));
+  const crumbs = state?.path === pathname ? state.crumbs : (fallback ?? defaultCrumbs(pathname));
   return (
     <nav aria-label="Trilha de navegação" className="min-w-0">
       <ol className="flex items-center gap-1.5 text-sm text-muted">

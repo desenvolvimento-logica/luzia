@@ -42,7 +42,7 @@ export default async function DepartmentsPage({ searchParams }: PageProps<"/admi
       {list.length === 0 ? (
         <EmptyState title="Nenhum departamento encontrado" />
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-surface">
+        <ul className="flex flex-col divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface">
           {list.map((d) => (
             <DepartmentRow
               key={d.id}

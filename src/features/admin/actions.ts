@@ -115,7 +115,7 @@ export async function saveApplication(_: FormState, form: FormData): Promise<For
   }
   revalidatePath("/admin/aplicacoes");
   revalidatePath("/");
-  redirect(`/admin/aplicacoes/${savedId}?salvo=1`);
+  redirect(`/admin/aplicacoes?salvo=${savedId}`);
 }
 
 export async function uploadAppIcon(form: FormData): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
