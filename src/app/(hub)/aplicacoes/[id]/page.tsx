@@ -12,16 +12,18 @@ export const metadata: Metadata = { title: "Aplicação" };
 
 function Denied({ children }: { children: React.ReactNode }) {
   return (
-    <ErrorState
-      title="Acesso não disponível"
-      action={
-        <ButtonLink href="/" variant="secondary">
-          Voltar ao catálogo
-        </ButtonLink>
-      }
-    >
-      {children}
-    </ErrorState>
+    <div className="p-4 sm:p-6">
+      <ErrorState
+        title="Acesso não disponível"
+        action={
+          <ButtonLink href="/" variant="secondary">
+            Voltar ao catálogo
+          </ButtonLink>
+        }
+      >
+        {children}
+      </ErrorState>
+    </div>
   );
 }
 
