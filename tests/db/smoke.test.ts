@@ -7,6 +7,6 @@ describe("fundação luzia_ sobre o legado hipotético", () => {
     const { rows } = await db.query<{ n: number; phase: string }>(
       "select (select count(*)::int from public.luzia_collaborators) n, (select value from public.luzia_settings where key = 'phase') phase",
     );
-    expect(rows[0]).toEqual({ n: 15, phase: "primary" });
+    expect(rows[0]).toEqual({ n: 14, phase: "primary" });
   });
 });

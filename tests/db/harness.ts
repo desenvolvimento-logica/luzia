@@ -142,7 +142,6 @@ export const E = {
   liderTrib: "tina.lider@exemplo.test",
   userTrib: "tom.usuario@exemplo.test",
   pendente: "paulo.pendente@exemplo.test",
-  semDpto: "sem.dpto@exemplo.test",
 } as const;
 
 export async function expectSqlError(p: Promise<unknown>, pattern: RegExp): Promise<void> {

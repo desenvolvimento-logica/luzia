@@ -15,7 +15,8 @@ select jsonb_pretty(jsonb_build_object(
   'colunas_hub', (
     select jsonb_object_agg(c.table_name, c.cols) from (
       select table_name, jsonb_agg(jsonb_build_object(
-               'coluna', column_name, 'tipo', data_type, 'nulo', is_nullable, 'padrao', column_default)
+               'coluna', column_name, 'tipo', data_type, 'nulo', is_nullable, 'padrao', column_default,
+               'identity', case when is_identity = 'YES' then identity_generation end)
              order by ordinal_position) as cols
         from information_schema.columns
        where table_schema = 'public' and table_name in (select t from hub_tables)

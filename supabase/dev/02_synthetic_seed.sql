@@ -35,10 +35,6 @@ select v.nome, v.email, d.dpto_id, v.cargo, v.admin, 'seed-sintetico'
   ) as v(nome, email, dpto, cargo, admin)
   join public.dpto d on d.dpto_name = v.dpto;
 
--- Colaborador legado sem departamento (importado para "Não atribuído").
-insert into public.users (user_name, user_email, user_dpto, user_role, is_admin, user_create)
-values ('Sem Departamento', 'sem.dpto@exemplo.test', null, 'usuario', false, 'seed-sintetico');
-
 insert into public.applications (app_name, app_description, app_url, app_icon, app_status, user_created) values
   ('Fisco Check',      'Comparação de obrigações fiscais', 'https://fiscocheck.exemplo.test/', '🧾', true,  'seed-sintetico'),
   ('Mensagens e-CAC',  'Caixa postal tributária',          'https://tributario.exemplo.test/', '✉️', true,  'seed-sintetico'),

@@ -33,9 +33,9 @@ describe("importação do legado (coexistência)", () => {
     expect(same[0]!.n).toBe(legacy.rows[0]!.n);
     // E-mail com maiúsculas no legado vira minúsculo no luzia.
     expect((await db.query("select 1 from public.luzia_collaborators where email = 'ursula.usuaria@exemplo.test'")).rows).toHaveLength(1);
-    // Sem departamento no legado → "Não atribuído" (provisioning).
+    // "Não atribuído" do legado vira o departamento de provisionamento.
     const { rows: sd } = await db.query<{ kind: string }>(
-      "select d.kind::text from public.luzia_collaborators c join public.luzia_departments d on d.id = c.department_id where c.email = $1", [E.semDpto],
+      "select d.kind::text from public.luzia_collaborators c join public.luzia_departments d on d.id = c.department_id where c.email = $1", [E.pendente],
     );
     expect(sd[0]?.kind).toBe("provisioning");
     const { rows: aud } = await db.query<{ name: string; audience: string; active: boolean }>("select name, audience::text, active from public.luzia_applications order by name");
@@ -92,8 +92,8 @@ describe("importação do legado (coexistência)", () => {
 
   it("aborta com e-mails repetidos (ignorando maiúsculas) no legado", async () => {
     const db = await createTestDb({ legacyOnly: true });
-    await db.exec(`alter table public.users disable trigger on_app_user_created_link_auth;
-      insert into public.users (user_name, user_email, user_role) values ('Duplicada', 'UGO.USUARIO@exemplo.test', 'usuario');`);
+    await db.exec(`alter table public.users disable trigger on_app_user_created;
+      insert into public.users (user_name, user_email, user_dpto, user_role) select 'Duplicada', 'UGO.USUARIO@exemplo.test', dpto_id, 'usuario' from public.dpto where dpto_name = 'Fiscal';`);
     await applyMigrations(db);
     await expectSqlError(db.query("select private.luzia_import_legacy()"), /e-mails repetidos/);
   });

@@ -95,10 +95,8 @@ describe("catálogo por departamento (AC-03, AC-04)", () => {
     expect((await asUser(db, E.userFiscal, (tx) => tx.query<{ ok: boolean }>("select public.luzia_can_open($1) ok", [msg]))).rows[0]?.ok).toBe(false);
   });
 
-  it("'Não atribuído' (inclusive quem veio do legado sem departamento) não recebe nem as globais", async () => {
-    for (const email of [E.pendente, E.semDpto]) {
-      expect((await asUser(db, email, (tx) => tx.query("select 1 from public.luzia_applications"))).rows, email).toHaveLength(0);
-    }
+  it("'Não atribuído' não recebe nem as aplicações globais", async () => {
+    expect((await asUser(db, E.pendente, (tx) => tx.query("select 1 from public.luzia_applications"))).rows).toHaveLength(0);
   });
 
   it("aplicação inativa: admin vê na administração, mas ninguém abre", async () => {

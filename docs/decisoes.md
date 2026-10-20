@@ -18,6 +18,31 @@ O hub usa o **mesmo projeto Supabase** do Controle de Vencimentos LG (`legal_`) 
 
 A migração anterior (que alterava políticas, colunas e gatilhos das tabelas legadas) foi descartada antes de ser aplicada em qualquer banco: violaria as regras do projeto compartilhado documentadas pelos outros sistemas (não alterar `auth.users`, `public.users`, `public.dpto`, nem os privilégios do schema `private`).
 
+## Inventário do projeto real (somente leitura, 20/10/2026)
+
+Executado pelo usuário no SQL Editor (`supabase/inventory/inventario-somente-leitura.sql`); o resultado não contém dados pessoais.
+
+| Ponto | Resultado | Efeito |
+|---|---|---|
+| Objetos `luzia_` existentes | nenhum | sem colisão de nomes |
+| Schema `private` | existe, dono `postgres`, `authenticated` com USAGE | pré-condição da migração atendida |
+| Postgres | 17.6 (testes locais em PGlite 18) | migração não usa recursos exclusivos da 18 |
+| `public.users` | colunas `user_id bigint`, `auth_user_id uuid` (unique, FK sem ação para `auth.users`), `user_name`/`user_email` varchar, `user_dpto bigint not null`, `user_role` varchar com check dos 5 cargos, `is_admin`, `dt_create`, `user_create`; `user_email` unique | espelho compatível; reconstrução do legado em `supabase/dev/01_legacy_baseline.sql` alinhada |
+| `public.dpto` | `dpto_id bigint`, `dpto_name` varchar unique, `dt_create`, `user_create` | espelho compatível |
+| IDs identity | `column_default` nulo; inventário atualizado para mostrar `is_identity` | **pendente** (X-15) |
+| Gatilhos | `on_auth_user_created` (hub), `on_auth_user_created_cc` (contcheck) em `auth.users`; `on_app_user_created` AFTER INSERT em `public.users` | hub novo não altera nenhum |
+| Identidades | 68 `azure`, **8 `email`** (R-02 confirmado: há contas por e-mail/senha no projeto); `tid` em `custom_claims.tid`; 1 tenant | caminho do `tid` da RPC confirmado; sessão por e-mail é negada pelo hub novo |
+| Contagens | 17 departamentos, 133 colaboradores (57 nunca entraram), 1 admin, 8 aplicações (7 ativas, todas com vínculos), 25 vínculos, 678 acessos, 3 novidades; 0 e-mails com maiúsculas ou repetidos | importação não deve abortar; todas as apps viram `selected_departments` |
+| FKs de outros sistemas | 14, todas do HelpDesk GC (`gestao_cadastros_requester_departments` → `dpto` **cascade**; demais → `users` restrict/cascade/set null). `lic_profiles` não tem FK formal | espelho nunca apaga (D-22) |
+| Origens de `app_url` | `https://contcheck.lovable.app`, `https://cpa-tax-planner.lovable.app`, `https://fiscocheck.lovable.app`, `https://limite-certo.lovable.app`, `https://perdcomp-pilot.lovable.app`, `https://tax-hub-central.lovable.app` (3 apps) | valor de `LUZIA_APP_ALLOWED_ORIGINS`; `limite-certo` não consta da spec operacional |
+| Bucket `app-icons` | público; insert/update/delete só com `current_user_is_admin()` | upload pelo hub novo depende do `is_admin` legado (mantido pelo espelho) |
+
+### Achados sobre o hub antigo (não alterados por este projeto)
+
+- **F-01 — catálogo sem restrição por departamento.** `applications_select_scoped` usa `not exists (select … from applications_dpto …)`, mas `applications_dpto_select_admin` só deixa admin ler `applications_dpto`. Para não-admins a subconsulta não vê vínculo nenhum e toda aplicação ativa aparece. Reproduzido em `tests/db/legacy-behavior.test.ts` com as políticas reais; **a confirmar com um login não-admin no hub antigo**. Consequência para o corte: hoje as pessoas veem as 7 aplicações ativas; no hub novo cada uma verá só as liberadas para o seu departamento (25 vínculos). Revisar os vínculos antes do corte.
+- **F-02 — `anon` com todos os privilégios** (inclusive `TRUNCATE`) nas tabelas legadas do hub. O RLS limita leitura/escrita via API, e o PostgREST não expõe `TRUNCATE`, mas é endurecimento pendente do legado (não alterado: tabelas compartilhadas).
+- **F-03 — `access_log` apaga em cascata** com o colaborador ou a aplicação legada. O espelho do hub novo nunca apaga linhas legadas.
+
 ## Inventário inicial (Etapa 0)
 
 | Item | Situação |
@@ -76,7 +101,7 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 |---|---|---|---|
 | X-01 | O projeto compartilhado é produção e não há staging (regra documentada no LG/GC). Ensaio real precisa de Docker para `supabase start` ou de aprovação para aplicar a fundação no projeto compartilhado (fase coexistence, sem escrita no legado) | Teste real de RLS via PostgREST, Auth, Storage, AC-08, AC-16 real | Dono do produto / infraestrutura |
 | X-02 | Dump **somente de schema** do banco compartilhado (`pg_dump --schema-only`): tabelas, tipos de coluna, nomes de políticas, funções, gatilhos, grants | Confirmar tipos de id, nomes de índices/políticas, gatilho legado e ajustar a migração candidata | Responsável pelo Supabase |
-| X-03 | Tenant ID do Microsoft Entra e confirmação do caminho do `tid` em `auth.identities.identity_data` | Validação de tenant (AC-01) | Admin Microsoft 365 / Supabase Auth |
+| X-03 | Valor do tenant ID para `luzia_settings.azure_tenant_id` (caminho `custom_claims.tid` **confirmado** no inventário, 1 tenant) | Validação de tenant (AC-01) | Admin Microsoft 365 |
 | X-04 | App registration single-tenant com redirect para o domínio de staging do novo hub; configuração "Allow new users to sign up" (R-02) | Login real | Admin Microsoft 365 / Supabase |
 | X-05 | Uma aplicação de referência em staging que aceite a origem do novo hub em `HUB_ORIGIN` | AC-08 real | Desenvolvimento (Lovable) |
 | X-06 | Schemas de `comparisons`/`profiles` (Fisco Check) e `acoes`/`mensagens`/`boas_vindas`/`perfis` (Tributário) | Adaptadores de atividades reais (AC-12 real) | Desenvolvimento |
@@ -86,5 +111,7 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 | X-11 | Políticas reais do bucket `app-icons` | Admin desativado ainda poderia enviar ícones se as políticas legadas usarem `current_user_is_admin()` (não verifica estado) | Responsável pelo Supabase |
 | X-12 | Normalização de e-mail (maiúsculas) nas tabelas de perfil das apps | Atividades de quem tem e-mail com maiúsculas na app | Desenvolvimento |
 | X-10 | Aprovação das propostas (Não atribuído, estado de acesso, audiência explícita, última conta admin) | Aplicar a migração em ambiente compartilhado | Dono do produto |
-| X-13 | Colunas e restrições reais de `public.users`/`public.dpto` (a migração exige `user_create` nas duas; o GC documenta só parte das colunas) | Espelho na fase primary | Responsável pelo Supabase (inventário, seções 1–2) |
+| X-13 | ~~Colunas e restrições reais de `public.users`/`public.dpto`~~ — **resolvido** pelo inventário de 20/10/2026 | — | — |
+| X-15 | Confirmar se `user_id`/`dpto_id` são colunas identity (o espelho cria linhas legadas sem informar id) | Criação de colaborador/departamento na fase primary | Inventário atualizado |
+| X-16 | Revisar os 25 vínculos aplicação × departamento (F-01): hoje todos veem tudo | Expectativa dos colaboradores no corte | Dono do produto |
 | X-14 | Confirmar que o access token do login Azure no projeto traz `amr` com `oauth` e `app_metadata.providers` com `azure` (o LG depende do mesmo critério em produção) | Todo acesso a dados `luzia_` | Login real |

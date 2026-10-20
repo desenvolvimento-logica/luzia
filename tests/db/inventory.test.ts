@@ -30,13 +30,14 @@ describe("inventário somente leitura", () => {
     ]) {
       expect(inv, key).toHaveProperty(key);
     }
-    expect(inv.contagens.users).toBe(15);
+    expect(inv.contagens.users).toBe(14);
     expect(inv.contagens.users_email_maiusculo).toBe(1);
     expect(inv.objetos_luzia_existentes).toEqual([]);
     expect(inv.schema_private.authenticated_usage).toBe(true);
     expect(inv.identidades.chaves_custom_claims_azure).toEqual(["tid"]);
     expect(inv.gatilhos.map((g: { gatilho: string }) => g.gatilho)).toEqual(expect.arrayContaining(["on_auth_user_created"]));
     expect(inv.colunas_hub.users.map((c: { coluna: string }) => c.coluna)).toContain("user_create");
+    expect(inv.colunas_hub.users.find((c: { coluna: string }) => c.coluna === "user_id").identity).toBe("BY DEFAULT");
     // Nenhum e-mail ou nome aparece no resultado.
     expect(rows[0]!.inventario).not.toMatch(/@exemplo\.test|Ana Administradora/);
     expect((await db.query("select (select count(*) from public.users) u, (select count(*) from public.dpto) d")).rows).toEqual(before.rows);

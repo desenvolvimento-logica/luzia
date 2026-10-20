@@ -30,9 +30,9 @@ describe("primeiro acesso", () => {
   it("adoção nunca herda administração indevida nem departamento inexistente", async () => {
     const db = await createTestDb({ phase: "primary" });
     await createAuthUser(db, "nova.pessoa@exemplo.test");
-    // Alguém marcou admin direto no legado depois do corte: a adoção individual preserva o legado só no primeiro login,
-    // mas a adoção em lote nunca concede admin (teste em import-and-mirror). Aqui: departamento órfão vira provisioning.
-    await db.exec("update public.users set user_dpto = null where user_email = 'nova.pessoa@exemplo.test'");
+    // Departamento legado criado depois do corte (ainda inexistente no luzia_) vira provisioning na adoção.
+    await db.exec(`insert into public.dpto (dpto_name) values ('Criado no legado');
+      update public.users set user_dpto = (select dpto_id from public.dpto where dpto_name = 'Criado no legado') where user_email = 'nova.pessoa@exemplo.test';`);
     await provision(db, "nova.pessoa@exemplo.test");
     const { rows } = await db.query<{ kind: string }>(
       "select d.kind::text from public.luzia_collaborators c join public.luzia_departments d on d.id = c.department_id where c.email = 'nova.pessoa@exemplo.test'",
