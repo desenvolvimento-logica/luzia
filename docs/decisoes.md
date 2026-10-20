@@ -29,7 +29,7 @@ Executado pelo usuário no SQL Editor (`supabase/inventory/inventario-somente-le
 | Postgres | 17.6 (testes locais em PGlite 18) | migração não usa recursos exclusivos da 18 |
 | `public.users` | colunas `user_id bigint`, `auth_user_id uuid` (unique, FK sem ação para `auth.users`), `user_name`/`user_email` varchar, `user_dpto bigint not null`, `user_role` varchar com check dos 5 cargos, `is_admin`, `dt_create`, `user_create`; `user_email` unique | espelho compatível; reconstrução do legado em `supabase/dev/01_legacy_baseline.sql` alinhada |
 | `public.dpto` | `dpto_id bigint`, `dpto_name` varchar unique, `dt_create`, `user_create` | espelho compatível |
-| IDs identity | `column_default` nulo; inventário atualizado para mostrar `is_identity` | **pendente** (X-15) |
+| IDs identity | `user_id` e `dpto_id` são `GENERATED ALWAYS AS IDENTITY` (consulta complementar, 20/10/2026) | o espelho cria linhas legadas sem informar id e usa o id gerado; nenhuma escrita com id explícito no legado |
 | Gatilhos | `on_auth_user_created` (hub), `on_auth_user_created_cc` (contcheck) em `auth.users`; `on_app_user_created` AFTER INSERT em `public.users` | hub novo não altera nenhum |
 | Identidades | 68 `azure`, **8 `email`** (R-02 confirmado: há contas por e-mail/senha no projeto); `tid` em `custom_claims.tid`; 1 tenant | caminho do `tid` da RPC confirmado; sessão por e-mail é negada pelo hub novo |
 | Contagens | 17 departamentos, 133 colaboradores (57 nunca entraram), 1 admin, 8 aplicações (7 ativas, todas com vínculos), 25 vínculos, 678 acessos, 3 novidades; 0 e-mails com maiúsculas ou repetidos | importação não deve abortar; todas as apps viram `selected_departments` |
@@ -112,6 +112,6 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 | X-12 | Normalização de e-mail (maiúsculas) nas tabelas de perfil das apps | Atividades de quem tem e-mail com maiúsculas na app | Desenvolvimento |
 | X-10 | Aprovação das propostas (Não atribuído, estado de acesso, audiência explícita, última conta admin) | Aplicar a migração em ambiente compartilhado | Dono do produto |
 | X-13 | ~~Colunas e restrições reais de `public.users`/`public.dpto`~~ — **resolvido** pelo inventário de 20/10/2026 | — | — |
-| X-15 | Confirmar se `user_id`/`dpto_id` são colunas identity (o espelho cria linhas legadas sem informar id) | Criação de colaborador/departamento na fase primary | Inventário atualizado |
+| X-15 | ~~Confirmar se `user_id`/`dpto_id` são identity~~ — **resolvido**: `GENERATED ALWAYS` | — | — |
 | X-16 | Revisar os 25 vínculos aplicação × departamento (F-01): hoje todos veem tudo | Expectativa dos colaboradores no corte | Dono do produto |
 | X-14 | Confirmar que o access token do login Azure no projeto traz `amr` com `oauth` e `app_metadata.providers` com `azure` (o LG depende do mesmo critério em produção) | Todo acesso a dados `luzia_` | Login real |
