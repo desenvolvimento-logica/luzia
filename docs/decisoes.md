@@ -115,7 +115,7 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 | X-05 | Uma aplicação de referência em staging que aceite a origem do novo hub em `HUB_ORIGIN` | AC-08 real | Desenvolvimento (Lovable) |
 | X-06 | Schemas de `comparisons`/`profiles` (Fisco Check) e `acoes`/`mensagens`/`boas_vindas`/`perfis` (Tributário) | Adaptadores de atividades reais (AC-12 real) | Desenvolvimento |
 | X-07 | Código do hub legado | Conferir regras não documentadas (ex.: nomes das funções `current_user_*`, bucket) | Responsável |
-| X-08 | Backup/PITR confirmado antes de qualquer migração real | Etapa 5 | Infraestrutura |
+| X-08 | Não há backup/PITR além do próprio banco (informado em 20/10/2026). A fundação (coexistência) foi aplicada assim por não escrever no legado; **o corte exige salvaguarda antes** (ex.: cópia lógica de `public.users`/`public.dpto` guardada fora do repositório, ou plano com backup) | Corte (fase primary) | Dono do produto / infraestrutura |
 | X-09 | Política de retenção de acessos/atividades/auditoria e quem pode ler auditoria | Expurgo (não implementado) | Escritório |
 | X-11 | Políticas reais do bucket `app-icons` | Admin desativado ainda poderia enviar ícones se as políticas legadas usarem `current_user_is_admin()` (não verifica estado) | Responsável pelo Supabase |
 | X-12 | Normalização de e-mail (maiúsculas) nas tabelas de perfil das apps | Atividades de quem tem e-mail com maiúsculas na app | Desenvolvimento |
@@ -123,4 +123,4 @@ Valem para o hub novo; o hub antigo segue com as regras dele até o corte.
 | X-13 | ~~Colunas e restrições reais de `public.users`/`public.dpto`~~ — **resolvido** pelo inventário de 20/10/2026 | — | — |
 | X-15 | ~~Confirmar se `user_id`/`dpto_id` são identity~~ — **resolvido**: `GENERATED ALWAYS` | — | — |
 | X-16 | Revisar os 25 vínculos aplicação × departamento (F-01): hoje todos veem tudo | Expectativa dos colaboradores no corte | Dono do produto |
-| X-14 | Confirmar que o access token do login Azure no projeto traz `amr` com `oauth` e `app_metadata.providers` com `azure` (o LG depende do mesmo critério em produção) | Todo acesso a dados `luzia_` | Login real |
+| X-14 | ~~Claims `amr`/provedor no token real~~ — **confirmado** em 20/10/2026 (login real lê dados `luzia_`) | — | — |
